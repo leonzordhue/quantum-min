@@ -1,0 +1,2329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!--
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║  LAADV — Quantum Dissuasório v1.0                                                ║
+║  Análise de Efeito Punitivo Corporativo | Luís Albert Advocacia                  ║
+║  GitHub Pages Ready | Single-file HTML | Zero dependências externas críticas     ║
+╠═══════════════════════════════════════════════════════════════════════════════════╣
+║  CHANGELOG INTERNO — NÃO REMOVER ESTE BLOCO                                      ║
+╠═══════════════════════════════════════════════════════════════════════════════════╣
+║  [v1.0.0] 2026-03-18 — Criação                                                   ║
+║  - Plataforma GENERALIZADA para qualquer empresa/banco/setor                     ║
+║  - Design idêntico ao LAADV (teal/gold, Cormorant + DM Sans, mesmos componentes) ║
+║  - Step 1: Seleção de empresa (presets + empresas salvas + nova empresa)         ║
+║  - Step 2: Formulário de dados financeiros (IFRS + CNJ)                          ║
+║  - Step 3: Relatório completo (KPIs, Tabela Quantum, Cenários, Conclusão)        ║
+║  - Presets: Agibank 9M25, Nubank 2024, Bradesco 2024, Vivo 2024,                ║
+║             Itaú 2024, Casas Bahia 2024, Magazine Luiza 2024, Claro 2024        ║
+║  - Gerenciamento de empresas no localStorage (salvar/excluir)                    ║
+║  - Dev log oculto (Ctrl+Shift+L) — persistente via localStorage                 ║
+║  - Exportação PDF otimizada (A4)                                                 ║
+║                                                                                   ║
+║  [v2.0.0] 2026-03-18 — Relatório Jurídico Formal                                ║
+║  - Adicionado: Seção "Relatório Técnico-Jurídico" ao final do Step 3            ║
+║  - Documento formal em 8 seções numeradas (I a VIII)                            ║
+║  - Linguagem técnico-jurídica pronta para inserção em peças processuais          ║
+║  - Seção IV: desenvolvimento passo a passo de cada cálculo com fórmulas         ║
+║  - Seção VI: fundamentação doutrinária e jurisprudencial expandida               ║
+║  - Botão copiar texto para clipboard (sem formatação HTML)                       ║
+║  - Botão imprimir apenas o relatório (sem painel de análise)                    ║
+║  - Modo papel A4 com identidade visual LAADV (teal/gold)                        ║
+║  - FIX: gerarRelatorioJuridico() chamada ao fim de calcular()                   ║
+║                                                                                   ║
+║  BUGS CONHECIDOS / NÃO REGREDIR:                                                 ║
+║  - parseBR(): SEMPRE usar para inputs numéricos (nunca parseFloat direto)        ║
+║  - Lucro: SEMPRE anualizar (lucroAnual = lucro * 12 / meses)                    ║
+║  - SELIC: fórmula LINEAR (rendimento = valor × taxa × t) — conforme original    ║
+║  - Custo real: valor − rendimento (pode ser negativo = banco lucra no litígio)   ║
+║  - Threshold "1 dia de lucro": lucroAnual ÷ 365 (dias corridos, não úteis)      ║
+║  - Empresas salvas no localStorage key "laadv_empresas_v1"                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+-->
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0B4A44"/>
+  <title>LAADV — Quantum Dissuasório</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       DESIGN SYSTEM — TOKENS (idêntico ao index_calculo_adm)
+    ══════════════════════════════════════════════════════════ */
+    :root {
+      --teal:        #0B4A44;
+      --teal-mid:    #145E58;
+      --teal-light:  #1C7A72;
+      --teal-hover:  #0d5a54;
+      --teal-bg:     #EBF5F4;
+      --teal-brd:    #A8D4D0;
+      --gold:        #C9A93E;
+      --gold-light:  #E8CB6E;
+      --gold-dark:   #9E8130;
+      --gold-bg:     #FBF5E0;
+      --gold-brd:    #E8CB6E;
+      --white:       #FFFFFF;
+      --gray-bg:     #F5F7F9;
+      --gray-light:  #EEF1F5;
+      --gray-brd:    #DDE3EC;
+      --gray-mid:    #8899AA;
+      --text:        #162030;
+      --text-mid:    #3D4F63;
+      --success:     #1A6B48;
+      --success-bg:  #E8F5EE;
+      --error:       #B02020;
+      --error-bg:    #FEF2F2;
+      --blue:        #1A4B8C;
+      --blue-bg:     #EBF0F8;
+      --blue-brd:    #A8BED4;
+      --red:         #8C1A1A;
+      --red-bg:      #F8EBEB;
+      --red-brd:     #D4A8A8;
+      --font-serif:  'Cormorant Garamond', Georgia, serif;
+      --font:        'DM Sans', system-ui, sans-serif;
+      --radius:      12px;
+      --shadow:      0 2px 18px rgba(11,74,68,0.10), 0 0 0 1px var(--gray-brd);
+      --shadow-lg:   0 8px 40px rgba(11,74,68,0.18);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;font-size:16px;}
+    body{font-family:var(--font);background:var(--gray-bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh;}
+    ::selection{background:rgba(11,74,68,0.15);}
+
+    /* ── TOPBAR ── */
+    .topbar{background:var(--teal);padding:0.38rem 1.5rem;display:flex;align-items:center;justify-content:space-between;}
+    .topbar-l{font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);font-weight:500;}
+    .topbar-r{font-size:0.62rem;font-weight:600;color:var(--gold-light);display:flex;align-items:center;gap:0.5rem;letter-spacing:0.06em;text-transform:uppercase;}
+    .topbar-dot{width:6px;height:6px;border-radius:50%;background:var(--gold-light);animation:pulse 2.2s ease-in-out infinite;}
+    .topbar-devbtn{font-size:0.6rem;cursor:pointer;opacity:0.4;color:var(--gold-light);background:none;border:none;padding:0;letter-spacing:.04em;}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+    /* ── HEADER ── */
+    .site-header{background:var(--teal);border-bottom:3px solid var(--gold);padding:0.85rem 1.5rem 1rem;position:sticky;top:0;z-index:200;box-shadow:0 4px 24px rgba(11,74,68,0.3);}
+    .header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+    .brand{display:flex;align-items:center;gap:1rem;}
+    .brand-logo{width:44px;height:44px;border-radius:8px;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+    .brand-logo svg{width:32px;height:32px;}
+    .brand-name{font-family:var(--font-serif);font-size:1.3rem;font-weight:700;color:var(--white);letter-spacing:0.04em;line-height:1.1;}
+    .brand-sub{font-size:0.63rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold-light);margin-top:0.1rem;}
+    .header-badge{font-size:0.65rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;background:rgba(201,169,62,0.18);border:1px solid rgba(201,169,62,0.4);color:var(--gold-light);padding:0.4em 1.1em;border-radius:100px;}
+
+    /* ── HERO ── */
+    .hero{background:linear-gradient(135deg,var(--teal) 0%,var(--teal-mid) 60%,var(--teal-light) 100%);padding:2.2rem 1.5rem 3rem;position:relative;overflow:hidden;}
+    .hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(-52deg,transparent,transparent 54px,rgba(201,169,62,0.04) 54px,rgba(201,169,62,0.04) 55px);}
+    .hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(to bottom,var(--gold),rgba(201,169,62,0.1));}
+    .hero-inner{position:relative;z-index:1;max-width:1200px;margin:0 auto;}
+    .hero-eye{font-size:0.63rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-light);margin-bottom:0.5rem;}
+    .hero-title{font-family:var(--font-serif);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;color:var(--white);letter-spacing:-0.01em;line-height:1.1;margin-bottom:0.4rem;}
+    .hero-sub{font-size:0.84rem;color:rgba(255,255,255,0.55);max-width:680px;line-height:1.6;}
+    .hero-chips{display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem;}
+    .hero-chip{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.63rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.16);color:rgba(255,255,255,0.8);padding:0.28em 0.9em;border-radius:100px;}
+    .hero-wave{overflow:hidden;line-height:0;}
+    .hero-wave svg{display:block;width:100%;fill:var(--gray-bg);}
+
+    /* ── MAIN ── */
+    .main-wrap{max-width:1200px;margin:0 auto;padding:2rem 1.5rem 5rem;}
+
+    /* ── STEPPER ── */
+    .stepper{display:flex;align-items:center;margin-bottom:1.75rem;background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:0.75rem 1.25rem;overflow-x:auto;}
+    .step-item{display:flex;align-items:center;gap:0.6rem;flex-shrink:0;}
+    .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;border:2px solid var(--gray-brd);color:var(--gray-mid);background:var(--white);transition:all 0.2s;}
+    .step-label{font-size:0.72rem;font-weight:600;color:var(--gray-mid);white-space:nowrap;transition:color 0.2s;}
+    .step-item.active .step-num{background:var(--teal);border-color:var(--teal);color:#fff;}
+    .step-item.active .step-label{color:var(--teal);}
+    .step-item.done .step-num{background:var(--gold);border-color:var(--gold);color:var(--teal);}
+    .step-item.done .step-label{color:var(--text-mid);}
+    .step-sep{flex:1;height:2px;background:var(--gray-brd);min-width:20px;margin:0 0.4rem;}
+    .step-sep.done{background:var(--gold);}
+
+    /* ── CARD ── */
+    .card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:1.25rem;}
+    .card-head{padding:1rem 1.5rem;border-bottom:1px solid var(--gray-brd);background:linear-gradient(to right,var(--teal-bg),var(--white));display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;}
+    .card-head-left{display:flex;align-items:center;gap:0.7rem;}
+    .card-icon{width:34px;height:34px;border-radius:8px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff;flex-shrink:0;}
+    .card-title{font-size:0.92rem;font-weight:700;color:var(--teal);}
+    .card-sub{font-size:0.7rem;color:var(--gray-mid);margin-top:0.1rem;}
+    .card-body{padding:1.5rem;}
+    .card-body.p0{padding:0;}
+
+    /* ── AREA / EMPRESA SELECTOR ── */
+    .empresa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--gray-brd);border:1px solid var(--gray-brd);border-radius:14px;overflow:hidden;}
+    @media(max-width:960px){.empresa-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:520px){.empresa-grid{grid-template-columns:1fr;}}
+    .emp-btn{border:none;border-radius:0;padding:0;cursor:pointer;background:var(--white);text-align:left;transition:all 0.16s;display:flex;flex-direction:column;position:relative;}
+    .emp-btn:hover{background:#F0F7F6;z-index:2;}
+    .emp-btn.selected{background:var(--teal-bg);z-index:2;}
+    .emp-btn.selected .emp-ind{background:var(--teal);}
+    .emp-btn:hover .emp-ind{background:var(--teal);}
+    .emp-ind{height:3px;width:100%;background:var(--gray-brd);transition:background 0.16s;}
+    .emp-body{padding:1rem 1.1rem 0.9rem;flex:1;display:flex;flex-direction:column;gap:0.4rem;}
+    .emp-head{display:flex;align-items:center;gap:0.6rem;}
+    .emp-icon{width:34px;height:34px;border-radius:8px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;transition:box-shadow 0.16s;}
+    .emp-btn.selected .emp-icon,.emp-btn:hover .emp-icon{box-shadow:0 2px 8px rgba(11,74,68,0.3);}
+    .emp-nome{font-size:0.85rem;font-weight:700;color:var(--text);line-height:1.2;}
+    .emp-setor{font-size:0.64rem;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:0.07em;}
+    .emp-meta{font-size:0.68rem;color:var(--gray-mid);line-height:1.45;}
+    .emp-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:0.4rem;border-top:1px solid var(--gray-brd);}
+    .emp-status{font-size:0.58rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;padding:0.18em 0.65em;border-radius:100px;background:var(--teal-bg);border:1px solid var(--teal-brd);color:var(--teal);}
+    .emp-status.custom{background:var(--gold-bg);border-color:var(--gold-brd);color:var(--gold-dark);}
+    .emp-arrow{font-size:0.75rem;color:var(--gray-mid);transition:transform 0.16s,color 0.16s;}
+    .emp-btn:hover .emp-arrow,.emp-btn.selected .emp-arrow{transform:translateX(3px);color:var(--teal);}
+    /* botão nova empresa (especial) */
+    .emp-btn.nova{background:linear-gradient(135deg,var(--gold-bg),var(--white));}
+    .emp-btn.nova .emp-ind{background:var(--gold-brd);}
+    .emp-btn.nova:hover .emp-ind,.emp-btn.nova.selected .emp-ind{background:var(--gold);}
+    .emp-btn.nova .emp-icon{background:var(--gold);color:var(--teal);}
+    .emp-btn.nova .emp-nome{color:var(--gold-dark);}
+
+    /* ── FORM ── */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+    @media(max-width:640px){.form-grid{grid-template-columns:1fr;}}
+    .form-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+    @media(max-width:760px){.form-grid.cols3{grid-template-columns:1fr 1fr;}}
+    @media(max-width:500px){.form-grid.cols3{grid-template-columns:1fr;}}
+    .field{display:flex;flex-direction:column;gap:0.35rem;}
+    .field.full{grid-column:1/-1;}
+    .field-label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-mid);}
+    .field-label .req{color:var(--gold-dark);margin-left:0.2em;}
+    .field-hint{font-size:0.65rem;color:var(--gray-mid);}
+    .field input,.field select,.field textarea{font-family:var(--font);font-size:0.9rem;font-weight:500;color:var(--text);background:var(--white);border:1.5px solid var(--gray-brd);border-radius:8px;padding:0.7rem 1rem;outline:none;width:100%;transition:border-color 0.2s,box-shadow 0.2s;appearance:none;-webkit-appearance:none;}
+    .field input:focus,.field select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(11,74,68,0.1);}
+    .field input.error,.field select.error{border-color:var(--error);}
+    .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238899AA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center;padding-right:2.5rem;}
+    .form-divider{grid-column:1/-1;border:none;border-top:1.5px solid var(--gray-light);margin:0.25rem 0;}
+    .form-section-title{grid-column:1/-1;font-size:0.63rem;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:var(--teal);padding-bottom:0.5rem;border-bottom:2px solid var(--teal-bg);display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem;}
+    /* slider */
+    .slider-wrap{grid-column:1/-1;padding:0.25rem 0;}
+    .slider-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.4rem;}
+    .slider-label-sm{font-size:0.65rem;color:var(--gray-mid);}
+    .slider-cur{font-family:var(--font-serif);font-size:1.25rem;font-weight:700;color:var(--teal);}
+    input[type=range]{width:100%;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:var(--gray-brd);outline:none;cursor:pointer;}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--teal);border:3px solid var(--white);box-shadow:0 0 6px rgba(11,74,68,0.4);}
+
+    /* ── BUTTONS ── */
+    .btn{font-family:var(--font);font-size:0.85rem;font-weight:700;border:none;border-radius:9px;padding:0.75em 1.5em;cursor:pointer;display:inline-flex;align-items:center;gap:0.5rem;transition:all 0.16s;white-space:nowrap;}
+    .btn-primary{background:var(--teal);color:#fff;}
+    .btn-primary:hover{background:var(--teal-hover);transform:translateY(-1px);box-shadow:0 4px 18px rgba(11,74,68,0.3);}
+    .btn-gold{background:var(--gold);color:var(--teal);}
+    .btn-gold:hover{background:var(--gold-light);transform:translateY(-1px);box-shadow:0 4px 18px rgba(201,169,62,0.4);}
+    .btn-outline{background:transparent;color:var(--teal);border:1.5px solid var(--teal-brd);}
+    .btn-outline:hover{background:var(--teal-bg);}
+    .btn-ghost{background:transparent;color:var(--gray-mid);border:1.5px solid var(--gray-brd);}
+    .btn-ghost:hover{background:var(--gray-light);color:var(--text);}
+    .btn-danger{background:transparent;color:var(--red);border:1.5px solid var(--red-brd);}
+    .btn-danger:hover{background:var(--red-bg);}
+    .btn-lg{font-size:0.95rem;padding:0.9em 2em;}
+    .btn-sm{font-size:0.75rem;padding:0.5em 1em;}
+    .btn:disabled{opacity:0.45;pointer-events:none;}
+    .btn-actions{display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1.25rem;}
+
+    /* ── RESULT SUMMARY ── */
+    .result-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:0.75rem;margin-bottom:1.25rem;}
+    .rsumm-card{background:var(--white);border:1.5px solid var(--gray-brd);border-radius:10px;padding:1rem 1.2rem;}
+    .rsumm-card.highlight{background:var(--teal);border-color:var(--teal);}
+    .rsumm-card.gold{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-dark) 100%);border-color:var(--gold-dark);}
+    .rsumm-card.danger{background:linear-gradient(135deg,#B02020 0%,#8C1A1A 100%);border-color:#8C1A1A;}
+    .rsumm-card.blue{background:linear-gradient(135deg,var(--blue) 0%,#0d3570 100%);border-color:#0d3570;}
+    .rsumm-label{font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray-mid);margin-bottom:0.3rem;}
+    .rsumm-card.highlight .rsumm-label,.rsumm-card.gold .rsumm-label,.rsumm-card.danger .rsumm-label,.rsumm-card.blue .rsumm-label{color:rgba(255,255,255,0.65);}
+    .rsumm-val{font-family:var(--font-serif);font-size:1.4rem;font-weight:700;color:var(--text);line-height:1.1;}
+    .rsumm-card.highlight .rsumm-val,.rsumm-card.gold .rsumm-val,.rsumm-card.danger .rsumm-val,.rsumm-card.blue .rsumm-val{color:#fff;}
+    .rsumm-sub{font-size:0.67rem;color:var(--gray-mid);margin-top:0.3rem;}
+    .rsumm-card.highlight .rsumm-sub,.rsumm-card.gold .rsumm-sub,.rsumm-card.danger .rsumm-sub,.rsumm-card.blue .rsumm-sub{color:rgba(255,255,255,0.55);}
+
+    /* ── TABELAS ── */
+    .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--gray-brd);}
+    .data-table{width:100%;border-collapse:collapse;font-size:0.78rem;min-width:700px;}
+    .data-table thead tr{background:var(--teal);}
+    .data-table thead th{padding:0.7rem 1rem;font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.9);text-align:left;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1);}
+    .data-table thead th:last-child{border-right:none;}
+    .data-table tbody tr{border-bottom:1px solid var(--gray-brd);transition:background 0.12s;}
+    .data-table tbody tr:hover{background:var(--teal-bg);}
+    .data-table tbody td{padding:0.6rem 1rem;color:var(--text-mid);white-space:nowrap;border-right:1px solid var(--gray-brd);}
+    .data-table tbody td:last-child{border-right:none;}
+    .data-table tbody tr.row-highlight{background:var(--gold-bg)!important;}
+    .data-table tbody tr.row-total{background:var(--teal)!important;}
+    .data-table tbody tr.row-total td{color:#fff!important;font-weight:700;}
+    .td-val{font-weight:700;color:var(--text);}
+    .td-teal{font-weight:700;color:var(--teal);}
+    .td-gold{font-weight:700;color:var(--gold-dark);}
+    .td-danger{font-weight:700;color:var(--red);}
+    .td-success{font-weight:700;color:var(--success);}
+    .td-blue{font-weight:700;color:var(--blue);}
+
+    /* Badges quantum */
+    .nivel-badge{display:inline-flex;font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:0.2em 0.7em;border-radius:100px;}
+    .nb-nulo{background:var(--red-bg);border:1px solid var(--red-brd);color:var(--red);}
+    .nb-sub{background:var(--red-bg);border:1px solid var(--red-brd);color:var(--red);}
+    .nb-min{background:var(--gold-bg);border:1px solid var(--gold-brd);color:var(--gold-dark);}
+    .nb-mod{background:var(--blue-bg);border:1px solid var(--blue-brd);color:var(--blue);}
+    .nb-rel{background:var(--teal-bg);border:1px solid var(--teal-brd);color:var(--teal);}
+    .nb-full{background:var(--success-bg);border:1px solid rgba(26,107,72,0.3);color:var(--success);}
+    .nb-rec{background:var(--teal);border:1px solid var(--teal-mid);color:#fff;font-weight:900;}
+    .nb-borda{background:var(--gold-bg);border:1px solid var(--gold-brd);color:var(--gold-dark);}
+
+    /* ── LEGAL BOX ── */
+    .legal-box{background:var(--teal-bg);border:1.5px solid var(--teal-brd);border-radius:10px;padding:1rem 1.2rem;margin-bottom:1.25rem;display:flex;gap:0.75rem;align-items:flex-start;}
+    .legal-box-icon{font-size:1.2rem;flex-shrink:0;margin-top:0.05rem;}
+    .legal-box-title{font-size:0.7rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--teal);margin-bottom:0.25rem;}
+    .legal-box-text{font-size:0.8rem;color:var(--text-mid);line-height:1.6;}
+    .legal-box-text strong{color:var(--teal);}
+
+    /* ── ALERTS ── */
+    .alert{border-radius:9px;padding:0.85rem 1.1rem;display:flex;align-items:flex-start;gap:0.6rem;margin-bottom:1rem;font-size:0.8rem;line-height:1.5;}
+    .alert-error{background:var(--error-bg);border:1.5px solid rgba(176,32,32,0.25);color:#7a1010;}
+    .alert-warn{background:var(--gold-bg);border:1.5px solid var(--gold-brd);color:#6B4F00;}
+    .alert-info{background:var(--teal-bg);border:1.5px solid var(--teal-brd);color:var(--teal);}
+    .alert-success{background:var(--success-bg);border:1.5px solid rgba(26,107,72,0.3);color:var(--success);}
+
+    /* ── CENÁRIOS BOX ── */
+    .cenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem;}
+    @media(max-width:760px){.cenario-grid{grid-template-columns:1fr;}}
+    .cenario-card{border-radius:10px;padding:1.1rem;border:1.5px solid;}
+    .cenario-card.c-danger{background:var(--red-bg);border-color:var(--red-brd);}
+    .cenario-card.c-gold{background:var(--gold-bg);border-color:var(--gold-brd);}
+    .cenario-card.c-success{background:var(--success-bg);border-color:rgba(26,107,72,0.3);}
+    .cenario-titulo{font-size:0.62rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:0.3rem;}
+    .cenario-card.c-danger .cenario-titulo{color:var(--red);}
+    .cenario-card.c-gold .cenario-titulo{color:var(--gold-dark);}
+    .cenario-card.c-success .cenario-titulo{color:var(--success);}
+    .cenario-nome{font-family:var(--font-serif);font-size:1.15rem;font-weight:700;color:var(--text);margin-bottom:0.5rem;}
+    .cenario-desc{font-size:0.7rem;color:var(--text-mid);line-height:1.55;margin-bottom:0.75rem;}
+    .cenario-row{display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.72rem;}
+    .cenario-row:last-child{border-bottom:none;}
+    .cenario-row-lbl{color:var(--text-mid);}
+    .cenario-row-val{font-weight:700;color:var(--text);}
+
+    /* ── INCENTIVO GRID ── */
+    .incentivo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;}
+    @media(max-width:760px){.incentivo-grid{grid-template-columns:1fr 1fr;}}
+    @media(max-width:440px){.incentivo-grid{grid-template-columns:1fr;}}
+    .inc-card{background:var(--gold-bg);border:1.5px solid var(--gold-brd);border-radius:10px;padding:0.9rem 1rem;}
+    .inc-label{font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:0.35rem;}
+    .inc-val{font-family:var(--font-serif);font-size:1.25rem;font-weight:700;color:var(--text);line-height:1.1;}
+    .inc-sub{font-size:0.65rem;color:var(--text-mid);margin-top:0.2rem;}
+
+    /* ── FUNDAMENTAÇÃO ── */
+    .fund-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+    @media(max-width:640px){.fund-grid{grid-template-columns:1fr;}}
+    .fund-card{background:var(--gray-bg);border:1px solid var(--gray-brd);border-radius:10px;padding:1rem;border-left:3px solid var(--teal);}
+    .fund-titulo{font-size:0.6rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray-mid);margin-bottom:0.25rem;}
+    .fund-nome{font-size:0.82rem;font-weight:700;color:var(--teal);margin-bottom:0.4rem;}
+    .fund-texto{font-size:0.72rem;color:var(--text-mid);line-height:1.6;}
+
+    /* ── MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(11,20,40,0.65);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:2rem 1rem;overflow-y:auto;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--white);border-radius:16px;width:100%;max-width:560px;box-shadow:var(--shadow-lg);overflow:hidden;animation:modalIn 0.22s ease;}
+    @keyframes modalIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+    .modal-head{background:var(--teal);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;}
+    .modal-head-title{font-size:0.95rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:0.5rem;}
+    .modal-close{width:30px;height:30px;border-radius:6px;background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .modal-body{padding:1.5rem;}
+    .modal-foot{padding:1rem 1.5rem;border-top:1px solid var(--gray-brd);display:flex;justify-content:flex-end;gap:0.5rem;}
+
+    /* ══════════════════════════════════════════════════════════
+       RELATÓRIO JURÍDICO FORMAL — Estilos de documento
+    ══════════════════════════════════════════════════════════ */
+    .relatorio-juridico {
+      background: #FAFAF8;
+      border: 1px solid var(--gray-brd);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+    .rj-header {
+      background: var(--teal);
+      border-bottom: 3px solid var(--gold);
+      padding: 1.5rem 2rem;
+    }
+    .rj-header-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
+    }
+    .rj-logo-area { display: flex; align-items: center; gap: 0.75rem; }
+    .rj-logo-box {
+      width: 42px; height: 42px; border-radius: 6px;
+      background: var(--gold); display: flex; align-items: center;
+      justify-content: center; color: var(--teal);
+      font-family: Georgia, serif; font-weight: 900; font-size: 0.9rem;
+    }
+    .rj-logo-text { }
+    .rj-logo-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .rj-logo-sub  { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-light); margin-top: 0.1rem; }
+    .rj-header-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .rj-badge {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.25em 0.8em; border-radius: 100px;
+      background: rgba(201,169,62,0.18); border: 1px solid rgba(201,169,62,0.4); color: var(--gold-light);
+    }
+    .rj-badge.conf {
+      background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.7);
+    }
+    .rj-doc-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(1rem, 2.5vw, 1.4rem); font-weight: 700; color: #fff;
+      letter-spacing: 0.01em; line-height: 1.2; text-align: center;
+      padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.15);
+    }
+    .rj-doc-sub {
+      font-size: 0.72rem; color: rgba(255,255,255,0.55);
+      text-align: center; margin-top: 0.25rem;
+      font-family: 'DM Sans', system-ui, sans-serif; letter-spacing: 0.06em;
+    }
+    /* Barra de ações do relatório */
+    .rj-actions {
+      background: var(--gray-light); border-bottom: 1px solid var(--gray-brd);
+      padding: 0.75rem 2rem; display: flex; align-items: center;
+      justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
+    }
+    .rj-actions-left { font-size: 0.68rem; color: var(--gray-mid); font-family: 'DM Sans', sans-serif; }
+    .rj-actions-right { display: flex; gap: 0.5rem; }
+    /* Corpo do documento */
+    .rj-body { padding: 2.5rem 3rem; background: #FAFAF8; }
+    @media(max-width:640px){ .rj-body { padding: 1.5rem 1.25rem; } }
+    /* Seções numeradas */
+    .rj-secao { margin-bottom: 2rem; }
+    .rj-secao-num {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--gold-dark); margin-bottom: 0.3rem;
+    }
+    .rj-secao-titulo {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.1rem; font-weight: 700; color: var(--teal);
+      padding-bottom: 0.4rem; border-bottom: 2px solid var(--teal-bg);
+      margin-bottom: 0.85rem; text-transform: uppercase; letter-spacing: 0.02em;
+    }
+    .rj-subsecao { margin-bottom: 1.1rem; }
+    .rj-subsecao-titulo {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 0.95rem; font-weight: 700; color: var(--teal-mid);
+      margin-bottom: 0.4rem;
+    }
+    /* Parágrafos jurídicos */
+    .rj-p {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1rem; color: var(--text); line-height: 1.85;
+      text-align: justify; margin-bottom: 0.85rem;
+      text-indent: 2rem;
+    }
+    .rj-p:last-child { margin-bottom: 0; }
+    .rj-p strong { color: var(--teal); font-weight: 700; }
+    .rj-p em { font-style: italic; }
+    /* Texto sem recuo (para itens específicos) */
+    .rj-p.no-indent { text-indent: 0; }
+    /* Caixas de destaque */
+    .rj-destaque {
+      background: var(--teal-bg); border-left: 4px solid var(--teal);
+      border-radius: 0 8px 8px 0; padding: 1rem 1.25rem;
+      margin: 1rem 0;
+    }
+    .rj-destaque-titulo {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--teal); margin-bottom: 0.35rem;
+    }
+    .rj-destaque-val {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1.1;
+    }
+    .rj-destaque-sub {
+      font-size: 0.72rem; color: var(--text-mid);
+      font-family: 'DM Sans', system-ui, sans-serif; margin-top: 0.2rem;
+    }
+    /* Caixa de fórmula */
+    .rj-formula {
+      background: var(--gray-light); border: 1px solid var(--gray-brd);
+      border-radius: 6px; padding: 0.85rem 1.25rem; margin: 0.75rem 0;
+      font-family: 'Courier New', monospace; font-size: 0.88rem; color: var(--teal);
+      white-space: pre-wrap; overflow-x: auto;
+    }
+    .rj-formula-label {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--gray-mid); margin-bottom: 0.35rem;
+    }
+    /* Tabela interna ao relatório */
+    .rj-table-wrap { overflow-x: auto; margin: 0.85rem 0; border-radius: 8px; border: 1px solid var(--gray-brd); }
+    .rj-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 580px; }
+    .rj-table thead tr { background: var(--teal); }
+    .rj-table thead th {
+      padding: 0.6rem 0.85rem; font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.9); text-align: left; white-space: nowrap;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    .rj-table thead th:last-child { border-right: none; }
+    .rj-table tbody tr { border-bottom: 1px solid var(--gray-brd); }
+    .rj-table tbody tr:hover { background: var(--teal-bg); }
+    .rj-table tbody tr.rj-tr-dest { background: var(--gold-bg) !important; }
+    .rj-table tbody tr.rj-tr-rec  { background: var(--teal) !important; }
+    .rj-table tbody tr.rj-tr-rec td { color: #fff !important; font-weight: 700; }
+    .rj-table tbody td {
+      padding: 0.55rem 0.85rem; color: var(--text-mid);
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: 0.9rem;
+      border-right: 1px solid var(--gray-brd);
+    }
+    .rj-table tbody td:last-child { border-right: none; }
+    .rj-td-v { font-weight: 700; color: var(--text); }
+    .rj-td-teal { font-weight: 700; color: var(--teal); }
+    .rj-td-gold { font-weight: 700; color: var(--gold-dark); }
+    /* Citações doutrinárias */
+    .rj-citacao {
+      border-left: 3px solid var(--gold-brd);
+      background: var(--gold-bg);
+      padding: 0.85rem 1.25rem;
+      margin: 0.75rem 0;
+      border-radius: 0 6px 6px 0;
+    }
+    .rj-citacao-texto {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 0.95rem; font-style: italic; color: var(--text-mid);
+      line-height: 1.7; text-align: justify;
+    }
+    .rj-citacao-fonte {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 0.65rem; font-weight: 600; color: var(--gold-dark);
+      margin-top: 0.4rem; letter-spacing: 0.04em;
+    }
+    /* Dispositivo */
+    .rj-dispositivo {
+      background: linear-gradient(135deg, var(--teal-bg), var(--white));
+      border: 1.5px solid var(--teal-brd); border-radius: 10px;
+      padding: 1.5rem; margin: 1.25rem 0;
+    }
+    .rj-dispositivo-titulo {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--teal); margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem; border-bottom: 2px solid var(--teal-brd);
+    }
+    .rj-disp-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem;
+    }
+    @media(max-width:600px) { .rj-disp-grid { grid-template-columns: 1fr; } }
+    .rj-disp-item { text-align: center; padding: 0.75rem; background: rgba(255,255,255,0.7); border-radius: 6px; border: 1px solid var(--gray-brd); }
+    .rj-disp-lbl { font-family: 'DM Sans', sans-serif; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-mid); margin-bottom: 0.3rem; }
+    .rj-disp-val { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 700; color: var(--text); }
+    .rj-disp-item.destaque { background: var(--teal); }
+    .rj-disp-item.destaque .rj-disp-lbl { color: rgba(255,255,255,0.6); }
+    .rj-disp-item.destaque .rj-disp-val { color: #fff; }
+    .rj-disp-item.gold { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); }
+    .rj-disp-item.gold .rj-disp-lbl { color: rgba(11,74,68,0.7); }
+    .rj-disp-item.gold .rj-disp-val { color: var(--teal); }
+    /* Assinatura */
+    .rj-assinatura {
+      margin-top: 2.5rem; padding-top: 1.5rem;
+      border-top: 2px solid var(--gray-brd);
+      display: flex; justify-content: flex-end;
+    }
+    .rj-assinatura-box { text-align: center; width: 280px; }
+    .rj-assinatura-linha { border-top: 1.5px solid var(--text); margin-bottom: 0.35rem; }
+    .rj-assinatura-nome { font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .rj-assinatura-cargo { font-family: 'DM Sans', sans-serif; font-size: 0.65rem; color: var(--gray-mid); margin-top: 0.15rem; }
+    /* Rodapé do relatório */
+    .rj-footer {
+      background: var(--teal); border-top: 3px solid var(--gold);
+      padding: 0.85rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap;
+    }
+    .rj-footer-left { font-family: 'DM Sans', sans-serif; font-size: 0.6rem; color: rgba(255,255,255,0.5); }
+    .rj-footer-right { font-family: 'DM Sans', sans-serif; font-size: 0.62rem; font-weight: 700; color: var(--gold-light); }
+    /* ── Print apenas relatório ── */
+    @media print {
+      .rj-actions { display: none !important; }
+      .rj-body { padding: 1.5rem 2rem; }
+      .rj-p { font-size: 0.9rem; line-height: 1.75; }
+      .rj-secao-titulo { font-size: 1rem; }
+      .rj-table { min-width: 0 !important; font-size: 0.75rem; }
+      .rj-table tbody td { padding: 0.3rem 0.5rem !important; }
+      .rj-disp-grid { grid-template-columns: repeat(3,1fr) !important; }
+      .rj-header { padding: 1rem 1.5rem; }
+    }
+
+    /* ── DEV LOG ── */
+    .dev-log{position:fixed;bottom:0;right:0;width:380px;max-height:200px;background:#020408;border:1px solid rgba(11,74,68,0.4);border-radius:8px 0 0 0;overflow-y:auto;font-family:monospace;font-size:0.6rem;color:rgba(168,212,208,0.8);padding:0.5rem;z-index:9999;display:none;}
+    .dev-log.open{display:block;}
+    .dev-log-head{color:var(--gold-light);font-weight:700;margin-bottom:0.3rem;display:flex;justify-content:space-between;font-size:0.65rem;}
+    .dev-log-entry{padding:0.12rem 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+    .dev-log-ts{color:rgba(255,255,255,0.3);margin-right:0.4rem;}
+
+    /* ── PRINT ── */
+    @media print{
+      @page{size:A4;margin:10mm 8mm;}
+      *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+      body{background:#fff!important;font-size:10px;}
+      .topbar,.site-header,.hero,.hero-wave,.stepper,.btn-actions,.btn-gold,.btn,.site-footer,.dev-log,.modal-overlay,#step-selector,#step-form{display:none!important;}
+      .main-wrap{padding:0!important;max-width:100%!important;}
+      .card{box-shadow:none!important;border:1px solid #ccc!important;margin-bottom:0.5rem!important;break-inside:avoid;}
+      .card-head{background:#0B4A44!important;}
+      .card-title{color:#fff!important;}
+      #step-results{display:block!important;}
+      .data-table{min-width:0!important;font-size:8px!important;width:100%!important;table-layout:fixed!important;}
+      .data-table thead tr{background:#0B4A44!important;}
+      .data-table thead th{color:#fff!important;font-size:7px!important;padding:0.25rem!important;}
+      .data-table tbody td{padding:0.2rem!important;white-space:normal!important;word-break:break-word;}
+      .cenario-grid{grid-template-columns:repeat(3,1fr)!important;}
+      .incentivo-grid{grid-template-columns:repeat(4,1fr)!important;}
+      .result-summary{grid-template-columns:repeat(5,1fr)!important;}
+      .fund-grid{grid-template-columns:1fr 1fr!important;}
+    }
+
+    /* ── FOOTER ── */
+    .site-footer{background:var(--teal);border-top:3px solid var(--gold);padding:1.4rem 1.5rem;}
+    .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+    .footer-brand{display:flex;align-items:center;gap:0.75rem;}
+    .footer-logo-box{width:32px;height:32px;border-radius:6px;background:var(--gold);display:flex;align-items:center;justify-content:center;}
+    .footer-name{font-family:var(--font-serif);font-size:1rem;font-weight:700;color:#fff;}
+    .footer-copy{font-size:0.62rem;color:rgba(255,255,255,0.4);line-height:1.6;text-align:right;}
+
+    /* ── MISC ── */
+    .hidden{display:none!important;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .animate-in{animation:fadeIn 0.25s ease both;}
+    .tag{display:inline-flex;align-items:center;gap:0.25rem;font-size:0.63rem;font-weight:700;padding:0.2em 0.7em;border-radius:100px;}
+    .tag-teal{background:var(--teal-bg);border:1px solid var(--teal-brd);color:var(--teal);}
+    .tag-gold{background:var(--gold-bg);border:1px solid var(--gold-brd);color:var(--gold-dark);}
+    .empresa-saved-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid var(--teal-bg);}
+    .empresa-saved-title{font-size:0.63rem;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:var(--teal);}
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-l">Luis Albert Advocacia — Quantum Dissuasório | Plataforma de Análise Punitiva Corporativa</span>
+  <span class="topbar-r">
+    <span class="topbar-dot"></span>
+    Sistema Ativo
+    <button class="topbar-devbtn" onclick="toggleLog()" title="Dev Log [Ctrl+Shift+L]">⚙ LOG</button>
+  </span>
+</div>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 38L20 10L27 27" stroke="#0B4A44" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M20 10L32 38" stroke="#0B4A44" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M17 28H27" stroke="#0B4A44" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">LUIS ALBERT</div>
+        <div class="brand-sub">Advocacia Administrativa</div>
+      </div>
+    </div>
+    <span class="header-badge">⚖️ Quantum Dissuasório — Análise Punitiva Corporativa</span>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eye">Direito do Consumidor · Responsabilidade Civil · Law & Economics</div>
+    <div class="hero-title">Sistema de Análise de<br>Quantum Mínimo Dissuasório</div>
+    <div class="hero-sub">Calcule o valor de condenação por dano moral a partir do qual a empresa passa a sentir impacto contábil real — fundamentado em dados IFRS, CNJ e SELIC. Aplicável a qualquer empresa, banco ou setor.</div>
+    <div class="hero-chips">
+      <span class="hero-chip">📊 Balanço IFRS</span>
+      <span class="hero-chip">⚖️ CNJ Polo Passivo</span>
+      <span class="hero-chip">📈 SELIC / BCB</span>
+      <span class="hero-chip">🏦 Bancos</span>
+      <span class="hero-chip">📡 Telecom</span>
+      <span class="hero-chip">🛒 Varejo</span>
+      <span class="hero-chip">🏥 Seguros</span>
+    </div>
+  </div>
+</div>
+<div class="hero-wave"><svg viewBox="0 0 1200 48" preserveAspectRatio="none"><path d="M0 48 C300 0 900 0 1200 48 Z"/></svg></div>
+
+<!-- MAIN -->
+<main class="main-wrap">
+
+  <!-- STEPPER -->
+  <div class="stepper" id="stepper">
+    <div class="step-item active" id="stp1"><div class="step-num">1</div><div class="step-label">Selecionar Empresa</div></div>
+    <div class="step-sep" id="sep1"></div>
+    <div class="step-item" id="stp2"><div class="step-num">2</div><div class="step-label">Dados Financeiros</div></div>
+    <div class="step-sep" id="sep2"></div>
+    <div class="step-item" id="stp3"><div class="step-num">3</div><div class="step-label">Relatório</div></div>
+  </div>
+
+  <!-- ══ STEP 1: SELEÇÃO DE EMPRESA ══ -->
+  <div id="step-selector">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon">🏦</div>
+          <div>
+            <div class="card-title">Selecionar Empresa para Análise</div>
+            <div class="card-sub">Escolha um preset com dados reais ou cadastre uma nova empresa para análise personalizada</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalEmpresa()">+ Nova Empresa</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Presets fixos -->
+        <div class="empresa-saved-header" style="margin-top:0;">
+          <span class="empresa-saved-title">📋 Presets — Dados Públicos Verificados</span>
+        </div>
+        <div class="empresa-grid" id="grid-presets"></div>
+
+        <!-- Empresas salvas -->
+        <div id="saved-section" class="hidden" style="margin-top:1.5rem;">
+          <div class="empresa-saved-header">
+            <span class="empresa-saved-title">⭐ Suas Empresas Salvas</span>
+            <span style="font-size:0.65rem;color:var(--gray-mid);">Armazenadas localmente neste navegador</span>
+          </div>
+          <div class="empresa-grid" id="grid-saved"></div>
+        </div>
+
+        <!-- Botão nova empresa destaque -->
+        <div style="margin-top:1.5rem;">
+          <div class="empresa-saved-header">
+            <span class="empresa-saved-title">✏️ Análise Personalizada</span>
+          </div>
+          <div class="empresa-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+            <button class="emp-btn nova" onclick="abrirModalEmpresa()">
+              <div class="emp-ind"></div>
+              <div class="emp-body">
+                <div class="emp-head">
+                  <div class="emp-icon">+</div>
+                  <div>
+                    <div class="emp-nome">Nova Empresa</div>
+                    <div class="emp-setor">Análise Personalizada</div>
+                  </div>
+                </div>
+                <div class="emp-meta">Cadastre qualquer empresa com dados do balanço IFRS e dados do CNJ. Análise em 3 etapas.</div>
+                <div class="emp-foot">
+                  <span class="emp-status custom">Personalizado</span>
+                  <span class="emp-arrow">→</span>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 2: FORMULÁRIO ══ -->
+  <div id="step-form" class="hidden">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon" id="form-icon">📊</div>
+          <div>
+            <div class="card-title" id="form-title">Dados Financeiros</div>
+            <div class="card-sub" id="form-sub">Preencha com os dados do balanço IFRS e do CNJ</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="voltarSelecao()">← Voltar</button>
+      </div>
+      <div class="card-body">
+        <div id="alert-form" class="hidden"></div>
+        <div class="form-grid">
+
+          <div class="form-section-title">🏢 Identificação</div>
+          <div class="field full">
+            <label class="field-label">Nome da Empresa <span class="req">*</span></label>
+            <input type="text" id="f-empresa" placeholder="Ex: Banco Agibank S.A."/>
+          </div>
+          <div class="field">
+            <label class="field-label">Setor <span class="req">*</span></label>
+            <select id="f-setor">
+              <option value="banco">🏦 Bancário / Financeiro</option>
+              <option value="fintech">💳 Fintech / Digital</option>
+              <option value="telecom">📡 Telecom / Internet</option>
+              <option value="seguros">🛡️ Seguros</option>
+              <option value="varejo">🛒 Varejo / E-commerce</option>
+              <option value="saude">🏥 Saúde / Plano</option>
+              <option value="energia">⚡ Energia / Utilidades</option>
+              <option value="outro">📋 Outro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Período do Balanço <span class="req">*</span></label>
+            <select id="f-meses">
+              <option value="9">9 meses (9M)</option>
+              <option value="12" selected>12 meses (Anual)</option>
+              <option value="6">6 meses (Semestral)</option>
+              <option value="3">3 meses (Trimestral)</option>
+            </select>
+            <span class="field-hint">O lucro será anualizado automaticamente (× 12 ÷ período)</span>
+          </div>
+
+          <hr class="form-divider"/>
+          <div class="form-section-title">💰 Dados Financeiros — Balanço IFRS (R$)</div>
+          <div class="field">
+            <label class="field-label">Lucro Líquido no Período <span class="req">*</span></label>
+            <input type="text" id="f-lucro" placeholder="Ex: 831.700.000"/>
+            <span class="field-hint">Resultado líquido conforme DRE — será anualizado automaticamente</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Provisões Cíveis / Trabalhistas <span class="req">*</span></label>
+            <input type="text" id="f-provisoes" placeholder="Ex: 300.100.000"/>
+            <span class="field-hint">Provisão para contingências — nota explicativa do balanço</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Despesas Jurídicas (Defesa)</label>
+            <input type="text" id="f-desp-jur" placeholder="Ex: 228.800.000"/>
+            <span class="field-hint">Honorários advocatícios, custas, peritos</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Condenações Efetivamente Pagas</label>
+            <input type="text" id="f-cond-pagas" placeholder="Ex: 141.330.000"/>
+            <span class="field-hint">Saídas efetivas por sentenças e acordos no período</span>
+          </div>
+
+          <hr class="form-divider"/>
+          <div class="form-section-title">⚖️ Dados Processuais — CNJ / Data.Jus</div>
+          <div class="field">
+            <label class="field-label">Nº de Processos (Polo Passivo) <span class="req">*</span></label>
+            <input type="text" id="f-processos" placeholder="Ex: 167.307"/>
+            <span class="field-hint">Painel CNJ de Litigiosidade / Relatório 100 Maiores Litigantes</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Taxa SELIC Vigente (% a.a.) <span class="req">*</span></label>
+            <input type="text" id="f-selic" placeholder="14.9"/>
+            <span class="field-hint">Fonte: BCB — base para rendimento sobre provisões</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Duração Média do Processo (anos) <span class="req">*</span></label>
+            <input type="text" id="f-anos" placeholder="4"/>
+            <span class="field-hint">1.ª à 2.ª instância — referência CNJ</span>
+          </div>
+
+          <hr class="form-divider"/>
+          <div class="form-section-title">📋 Caso Concreto</div>
+          <div class="field">
+            <label class="field-label">Valor da Condenação Analisada (R$) <span class="req">*</span></label>
+            <input type="text" id="f-condenacao" placeholder="Ex: 3.000" oninput="syncSlider()"/>
+            <span class="field-hint">Valor arbitrado pelo juízo no caso concreto</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Instância / Fase Processual</label>
+            <select id="f-instancia">
+              <option value="1grau">1.ª Instância — Sentença</option>
+              <option value="2grau" selected>2.ª Instância — Acórdão</option>
+              <option value="stj">STJ — Recurso Especial</option>
+              <option value="stf">STF — Recurso Extraordinário</option>
+            </select>
+          </div>
+          <!-- Slider de condenação -->
+          <div class="slider-wrap">
+            <div class="slider-header">
+              <span class="slider-label-sm">R$ 500</span>
+              <span class="slider-cur" id="slider-display">R$ 3.000</span>
+              <span class="slider-label-sm">R$ 500.000</span>
+            </div>
+            <input type="range" id="slider" min="500" max="500000" step="500" value="3000" oninput="syncFromSlider()"/>
+          </div>
+
+        </div>
+
+        <div class="btn-actions">
+          <button class="btn btn-primary btn-lg" onclick="calcular()">⚡ Gerar Análise</button>
+          <button class="btn btn-ghost" onclick="limparForm()">🗑 Limpar</button>
+          <button class="btn btn-outline btn-sm" onclick="salvarEmpresa()" id="btn-salvar-emp">💾 Salvar Empresa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 3: RESULTADOS ══ -->
+  <div id="step-results" class="hidden animate-in">
+
+    <!-- Header do relatório para impressão -->
+    <div id="print-header" style="display:none;margin-bottom:1rem;padding-bottom:1rem;border-bottom:3px solid var(--teal);">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div style="width:36px;height:36px;background:var(--teal);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:900;font-size:.8rem;">LA</div>
+        <div>
+          <div style="font-family:var(--font-serif);font-size:1.1rem;font-weight:700;color:var(--teal);">LUIS ALBERT ADVOCACIA</div>
+          <div style="font-size:0.6rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold-dark);">Quantum Mínimo Dissuasório — Análise Punitiva Corporativa</div>
+        </div>
+      </div>
+      <div style="text-align:right;font-size:0.65rem;color:var(--gray-mid);" id="print-meta"></div>
+    </div>
+
+    <div class="btn-actions" style="margin-bottom:1rem;">
+      <button class="btn btn-gold btn-lg" onclick="window.print()">📄 Exportar PDF</button>
+      <button class="btn btn-ghost" onclick="novaAnalise()">+ Nova Análise</button>
+      <button class="btn btn-outline btn-sm" onclick="voltarForm()">← Editar Dados</button>
+    </div>
+
+    <!-- LEGAL BOX -->
+    <div class="legal-box">
+      <div class="legal-box-icon">⚖️</div>
+      <div>
+        <div class="legal-box-title">Fundamento da Análise</div>
+        <div class="legal-box-text" id="legal-text">—</div>
+      </div>
+    </div>
+
+    <!-- KPIs principais -->
+    <div class="result-summary" id="result-summary"></div>
+
+    <!-- CUSTO JURÍDICO + SELIC -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon">📈</div>
+          <div>
+            <div class="card-title">Custo Jurídico Real + Rendimento sobre Provisões (SELIC)</div>
+            <div class="card-sub" id="custo-sub">Análise do incentivo perverso ao litígio</div>
+          </div>
+        </div>
+        <div id="custo-tags"></div>
+      </div>
+      <div class="card-body p0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;" id="custo-grid">
+          <!-- preenchido via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TABELA QUANTUM -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon">📊</div>
+          <div>
+            <div class="card-title">Tabela do Quantum Mínimo — Da Invisibilidade ao Efeito Significativo</div>
+            <div class="card-sub" id="quantum-sub">Fundamentada nas métricas contábeis e decisórias do balanço</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p0">
+        <div class="table-wrap">
+          <table class="data-table" id="quantum-table">
+            <thead>
+              <tr>
+                <th>Nível / Critério de Perceptibilidade</th>
+                <th>Quantum Individual</th>
+                <th>% do Lucro</th>
+                <th>Impacto Total (n° proc.)</th>
+                <th>Absorvida em</th>
+                <th>Classificação</th>
+              </tr>
+            </thead>
+            <tbody id="quantum-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESPOSTA CENTRAL -->
+    <div class="card" style="border:2px solid var(--teal);">
+      <div class="card-head" style="background:var(--teal);">
+        <div class="card-head-left">
+          <div class="card-icon" style="background:var(--gold);color:var(--teal);">⭐</div>
+          <div>
+            <div class="card-title" style="color:#fff;">Resposta à Questão Central — Quantum Mínimo Contábil Perceptível</div>
+            <div class="card-sub" style="color:rgba(255,255,255,0.6);">O valor a partir do qual a condenação produz seu primeiro efeito financeiro real</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:center;" id="resposta-grid">
+          <!-- preenchido via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 CENÁRIOS -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon">🎯</div>
+          <div>
+            <div class="card-title">Análise Custo-Benefício — Por que a Empresa Escolhe Litigar</div>
+            <div class="card-sub">Comparativo entre os três cenários de condenação e suas consequências decisórias</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="cenario-grid" id="cenario-grid"></div>
+      </div>
+    </div>
+
+    <!-- INCENTIVO PERVERSO -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon">💸</div>
+          <div>
+            <div class="card-title">O Incentivo Perverso — A Empresa Ganha Dinheiro Enquanto Litiga</div>
+            <div class="card-sub">Rendimento SELIC sobre as provisões investidas durante o processo judicial</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="incentivo-grid" id="incentivo-grid"></div>
+      </div>
+    </div>
+
+    <!-- ANÁLISE EM LOTE -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon">📋</div>
+          <div>
+            <div class="card-title">Análise em Lote — Projeção para Toda a Carteira de Processos</div>
+            <div class="card-sub" id="lote-sub">Impacto se todos os processos do polo passivo forem condenados</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="result-summary" id="lote-grid"></div>
+      </div>
+    </div>
+
+    <!-- FUNDAMENTAÇÃO JURÍDICA -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon">📜</div>
+          <div>
+            <div class="card-title">Fundamentação Jurídica para Majoração do Quantum</div>
+            <div class="card-sub">Doutrina, STJ e Law & Economics aplicados ao caso</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="fund-grid" id="fund-grid"></div>
+      </div>
+    </div>
+
+    <!-- CONCLUSÃO -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon">📝</div>
+          <div>
+            <div class="card-title">Conclusão — Quantum Mínimo Dissuasório</div>
+            <div class="card-sub" id="conclusao-sub">Síntese da análise para uso em peças processuais</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="legal-box" style="margin-bottom:1rem;">
+          <div class="legal-box-icon">⚖️</div>
+          <div>
+            <div class="legal-box-title">Para uso em peças processuais</div>
+            <div class="legal-box-text" id="conclusao-texto">—</div>
+          </div>
+        </div>
+        <div class="result-summary" id="conclusao-grid"></div>
+      </div>
+    </div>
+
+  </div><!-- /step-results -->
+
+  <!-- ══ RELATÓRIO JURÍDICO FORMAL ══ -->
+  <div id="relatorio-juridico-wrap" class="hidden animate-in" style="margin-top:0.5rem;">
+    <div class="relatorio-juridico" id="relatorio-juridico">
+
+      <!-- CABEÇALHO DO DOCUMENTO -->
+      <div class="rj-header">
+        <div class="rj-header-top">
+          <div class="rj-logo-area">
+            <div class="rj-logo-box">LA</div>
+            <div class="rj-logo-text">
+              <div class="rj-logo-nome">LUIS ALBERT ADVOCACIA</div>
+              <div class="rj-logo-sub">Advocacia Administrativa &amp; Responsabilidade Civil · Manaus – AM</div>
+            </div>
+          </div>
+          <div class="rj-header-badges">
+            <span class="rj-badge">⚖️ Memorando Técnico-Econômico</span>
+            <span class="rj-badge conf">🔒 Uso Institucional</span>
+            <span class="rj-badge" id="rj-badge-data"></span>
+          </div>
+        </div>
+        <div class="rj-doc-title" id="rj-doc-title">ANÁLISE DO QUANTUM INDENIZATÓRIO MÍNIMO PARA PRODUÇÃO DE EFEITO DISSUASÓRIO REAL</div>
+        <div class="rj-doc-sub" id="rj-doc-sub">Ref.: Ação de Indenização por Dano Moral — Análise Econômica de Capacidade Punitiva</div>
+      </div>
+
+      <!-- BARRA DE AÇÕES -->
+      <div class="rj-actions">
+        <span class="rj-actions-left">📄 Relatório gerado automaticamente — revise os dados antes de inserir em peça processual</span>
+        <div class="rj-actions-right">
+          <button class="btn btn-ghost btn-sm" onclick="copiarRelatorio()">📋 Copiar Texto</button>
+          <button class="btn btn-primary btn-sm" onclick="imprimirRelatorio()">🖨️ Imprimir Relatório</button>
+        </div>
+      </div>
+
+      <!-- CORPO DO DOCUMENTO -->
+      <div class="rj-body" id="rj-body">
+        <!-- preenchido via JS -->
+      </div>
+
+      <!-- RODAPÉ DO DOCUMENTO -->
+      <div class="rj-footer">
+        <div class="rj-footer-left" id="rj-footer-left">Luis Albert Advocacia · Análise Punitiva Corporativa v2.0</div>
+        <div class="rj-footer-right" id="rj-footer-right">Documento gerado por sistema automatizado — LAADV</div>
+      </div>
+
+    </div>
+  </div><!-- /relatorio-juridico-wrap -->
+
+</main>
+
+<!-- MODAL: Nova / Editar Empresa -->
+<div class="modal-overlay" id="modal-empresa">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-head-title">🏦 Cadastrar Nova Empresa</div>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+        <div class="field" style="grid-column:1/-1;">
+          <label class="field-label">Nome da Empresa <span class="req">*</span></label>
+          <input type="text" id="m-empresa" placeholder="Ex: Banco X S.A."/>
+        </div>
+        <div class="field">
+          <label class="field-label">Setor</label>
+          <select id="m-setor">
+            <option value="banco">🏦 Bancário</option><option value="fintech">💳 Fintech</option>
+            <option value="telecom">📡 Telecom</option><option value="seguros">🛡️ Seguros</option>
+            <option value="varejo">🛒 Varejo</option><option value="saude">🏥 Saúde</option>
+            <option value="energia">⚡ Energia</option><option value="outro">📋 Outro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Emoji / Ícone</label>
+          <input type="text" id="m-emoji" placeholder="Ex: 🏦" maxlength="4"/>
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label class="field-label">Observação</label>
+          <input type="text" id="m-obs" placeholder="Ex: Dados referência 9M2025"/>
+        </div>
+      </div>
+      <div class="alert alert-info" style="margin-top:1rem;">
+        ℹ️ Após cadastrar, preencha os dados financeiros no formulário da Etapa 2 e clique em <strong>Salvar Empresa</strong> para persistir o perfil completo.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmarNovaEmpresa()">✓ Avançar para Formulário</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEV LOG -->
+<div class="dev-log" id="dev-log">
+  <div class="dev-log-head">
+    ⚙ LAADV QUANTUM — DEV LOG
+    <span style="cursor:pointer;color:var(--red-brd);" onclick="clearLog()">limpar</span>
+  </div>
+  <div id="dev-log-entries"></div>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-logo-box"><span style="font-family:Georgia,serif;font-weight:900;font-size:.8rem;color:var(--teal);">LA</span></div>
+      <div>
+        <div class="footer-name">LUIS ALBERT ADVOCACIA</div>
+        <div style="font-size:.62rem;color:rgba(255,255,255,0.4);">Direito do Consumidor · Responsabilidade Civil · Manaus – AM</div>
+      </div>
+    </div>
+    <div class="footer-copy">
+      Quantum Dissuasório v1.0 | Metodologia: IFRS + CNJ + SELIC (BCB)<br>
+      © 2026 Luis Albert Advocacia — Uso Institucional | Modelo econômico simplificado<br>
+      <span style="font-size:.55rem;opacity:.4;">Não constitui parecer jurídico formal · GitHub Pages Ready</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ╔═══════════════════════════════════════════════════════════════════╗
+// ║  LAADV — QUANTUM DISSUASÓRIO v1.0                                ║
+// ║  Motor Analítico Generalizado                                     ║
+// ║                                                                   ║
+// ║  REGRAS DE NÃO-REGRESSÃO (não alterar sem documentar changelog): ║
+// ║  1. parseBR() para TODOS os inputs — nunca parseFloat() direto   ║
+// ║  2. Lucro SEMPRE anualizado: lucroAnual = lucro × 12 ÷ meses     ║
+// ║  3. SELIC LINEAR: rendimento = valor × taxa × tempo               ║
+// ║     (NÃO composta — fórmula conforme análise Agibank original)    ║
+// ║  4. "1 dia de lucro" = lucroAnual ÷ 365 (dias corridos)          ║
+// ║  5. Empresas salvas: localStorage key = "laadv_empresas_v1"       ║
+// ╚═══════════════════════════════════════════════════════════════════╝
+
+// ═══════════════════════════════════════════════════════
+// PRESETS — Dados Públicos (IFRS + CNJ)
+// ═══════════════════════════════════════════════════════
+const PRESETS = [
+  {
+    id:'agibank', emoji:'🏦', nome:'Banco Agibank S.A.', setor:'fintech', obs:'9M2025 — IFRS/CNJ',
+    meses:'9', lucro:'831700000', provisoes:'399130000', despJur:'228850000',
+    condPagas:'141330000', processos:'167307', selic:'14.9', anos:'4', condenacao:'3000'
+  },
+  {
+    id:'nubank', emoji:'💜', nome:'Nu Holdings (Nubank)', setor:'fintech', obs:'Anual 2024 — IFRS',
+    meses:'12', lucro:'1870000000', provisoes:'2400000000', despJur:'580000000',
+    condPagas:'340000000', processos:'280000', selic:'14.9', anos:'3', condenacao:'5000'
+  },
+  {
+    id:'bradesco', emoji:'🔴', nome:'Banco Bradesco S.A.', setor:'banco', obs:'Anual 2024 — IFRS',
+    meses:'12', lucro:'19000000000', provisoes:'45000000000', despJur:'3200000000',
+    condPagas:'2100000000', processos:'1200000', selic:'14.9', anos:'5', condenacao:'5000'
+  },
+  {
+    id:'itau', emoji:'🟠', nome:'Itaú Unibanco Holding', setor:'banco', obs:'Anual 2024 — IFRS',
+    meses:'12', lucro:'40000000000', provisoes:'50000000000', despJur:'4800000000',
+    condPagas:'2800000000', processos:'1800000', selic:'14.9', anos:'5', condenacao:'5000'
+  },
+  {
+    id:'vivo', emoji:'📡', nome:'Telefônica Brasil (Vivo)', setor:'telecom', obs:'Anual 2024 — IFRS',
+    meses:'12', lucro:'4200000000', provisoes:'8500000000', despJur:'1100000000',
+    condPagas:'620000000', processos:'450000', selic:'14.9', anos:'3', condenacao:'3000'
+  },
+  {
+    id:'claro', emoji:'📱', nome:'Claro S.A. (América Móvil)', setor:'telecom', obs:'Anual 2024 — Estimado',
+    meses:'12', lucro:'2800000000', provisoes:'6200000000', despJur:'850000000',
+    condPagas:'490000000', processos:'380000', selic:'14.9', anos:'3', condenacao:'3000'
+  },
+  {
+    id:'magalu', emoji:'🛒', nome:'Magazine Luiza S.A.', setor:'varejo', obs:'Anual 2024 — IFRS',
+    meses:'12', lucro:'350000000', provisoes:'980000000', despJur:'120000000',
+    condPagas:'85000000', processos:'95000', selic:'14.9', anos:'3', condenacao:'3000'
+  },
+  {
+    id:'casasbahia', emoji:'🏠', nome:'Casas Bahia S.A.', setor:'varejo', obs:'Anual 2024 — IFRS',
+    meses:'12', lucro:'80000000', provisoes:'1200000000', despJur:'180000000',
+    condPagas:'95000000', processos:'120000', selic:'14.9', anos:'3', condenacao:'3000'
+  },
+];
+
+const SETOR_ICONS = {
+  banco:'🏦', fintech:'💳', telecom:'📡', seguros:'🛡️',
+  varejo:'🛒', saude:'🏥', energia:'⚡', outro:'📋'
+};
+
+// ═══════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════
+const STORAGE_KEY = 'laadv_empresas_v1';
+const LOG_KEY     = 'laadv_quantum_log_v1';
+let empresasCustom = [];
+let logEntries     = [];
+let empresaAtual   = null;
+
+try { empresasCustom = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(_){}
+try { logEntries     = JSON.parse(localStorage.getItem(LOG_KEY))     || []; } catch(_){}
+
+// ═══════════════════════════════════════════════════════
+// LOG SYSTEM
+// ═══════════════════════════════════════════════════════
+function log(tipo, msg) {
+  const ts = new Date().toISOString().slice(11,19);
+  logEntries.unshift({ ts, tipo, msg });
+  if (logEntries.length > 300) logEntries = logEntries.slice(0,300);
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(logEntries)); } catch(_){}
+  renderLog();
+}
+function renderLog() {
+  const el = document.getElementById('dev-log-entries');
+  if (!el) return;
+  el.innerHTML = logEntries.slice(0,40).map(e =>
+    `<div class="dev-log-entry"><span class="dev-log-ts">${e.ts}</span>[${e.tipo}] ${e.msg}</div>`
+  ).join('');
+}
+function toggleLog() {
+  document.getElementById('dev-log').classList.toggle('open');
+  renderLog();
+}
+function clearLog() {
+  logEntries = [];
+  localStorage.removeItem(LOG_KEY);
+  renderLog();
+}
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'L') toggleLog();
+});
+
+// ═══════════════════════════════════════════════════════
+// PARSERS & FORMATADORES
+// ═══════════════════════════════════════════════════════
+/**
+ * parseBR — REGRA: SEMPRE usar para inputs numéricos.
+ * Converte "831.700.000" → 831700000 | "14,9" → 14.9
+ * NUNCA usar parseFloat() diretamente em campo de texto.
+ */
+function parseBR(str) {
+  if (!str) return 0;
+  const s = String(str).trim().replace(/\s/g,'').replace(/\./g,'').replace(',','.');
+  const v = parseFloat(s);
+  return isNaN(v) ? 0 : v;
+}
+function fmtBRL(v, d) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR', { style:'currency', currency:'BRL', minimumFractionDigits: d??2, maximumFractionDigits: d??2 });
+}
+function fmtN(v, d) {
+  if (!v && v !== 0) return '—';
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: d??2, maximumFractionDigits: d??2 });
+}
+function fmtPct(v, d) {
+  return fmtN(v, d??6) + '%';
+}
+function fmtTempo(minutos) {
+  if (minutos < 0.1) return `${(minutos*60).toFixed(0)} segundos`;
+  if (minutos < 60)  return `${minutos.toFixed(1)} minutos`;
+  if (minutos < 1440) return `${(minutos/60).toFixed(1)} horas`;
+  if (minutos < 43200) return `${(minutos/1440).toFixed(1)} dias`;
+  return `${(minutos/43200).toFixed(1)} meses`;
+}
+function escH(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════
+// STEPPER
+// ═══════════════════════════════════════════════════════
+function stepAtivo(n) {
+  [1,2,3].forEach(i => {
+    const s = document.getElementById('stp'+i);
+    s.classList.remove('active','done');
+    if (i < n)  s.classList.add('done');
+    if (i === n) s.classList.add('active');
+    if (i < 3)  document.getElementById('sep'+i).classList.toggle('done', i < n);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER GRID DE EMPRESAS
+// ═══════════════════════════════════════════════════════
+function renderGridPresets() {
+  const el = document.getElementById('grid-presets');
+  el.innerHTML = PRESETS.map(p => empCard(p, false)).join('');
+}
+function renderGridSaved() {
+  const el = document.getElementById('grid-saved');
+  const sec = document.getElementById('saved-section');
+  if (empresasCustom.length === 0) { sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  el.innerHTML = empresasCustom.map(p => empCard(p, true)).join('');
+}
+function empCard(p, custom) {
+  const icon = p.emoji || SETOR_ICONS[p.setor] || '📋';
+  const deleteBtn = custom
+    ? `<button onclick="excluirEmpresa('${p.id}',event)" style="font-size:.62rem;padding:.15em .5em;border:1px solid var(--red-brd);background:var(--red-bg);color:var(--red);border-radius:5px;cursor:pointer;" title="Excluir">✕</button>`
+    : '';
+  return `
+    <button class="emp-btn" onclick="selecionarEmpresa('${p.id}', ${custom})">
+      <div class="emp-ind"></div>
+      <div class="emp-body">
+        <div class="emp-head">
+          <div class="emp-icon">${icon}</div>
+          <div>
+            <div class="emp-nome">${escH(p.nome)}</div>
+            <div class="emp-setor">${escH(SETOR_ICONS[p.setor]||'') } ${escH(p.setor.toUpperCase())}</div>
+          </div>
+        </div>
+        <div class="emp-meta">${escH(p.obs||'')}</div>
+        <div class="emp-foot">
+          <span class="emp-status ${custom?'custom':''}">${custom ? 'Personalizado' : 'Preset'}</span>
+          <div style="display:flex;align-items:center;gap:.4rem;">${deleteBtn}<span class="emp-arrow">→</span></div>
+        </div>
+      </div>
+    </button>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// SELEÇÃO E NAVEGAÇÃO
+// ═══════════════════════════════════════════════════════
+function selecionarEmpresa(id, custom) {
+  const lista = custom ? empresasCustom : PRESETS;
+  const empresa = lista.find(p => p.id === id);
+  if (!empresa) return;
+  empresaAtual = empresa;
+
+  // Marca visual
+  document.querySelectorAll('.emp-btn').forEach(b => b.classList.remove('selected'));
+  event?.currentTarget?.classList?.add('selected');
+
+  // Preenche o formulário
+  preencherForm(empresa);
+
+  // Navega para step 2
+  setTimeout(() => {
+    document.getElementById('step-selector').classList.add('hidden');
+    document.getElementById('step-form').classList.remove('hidden');
+    stepAtivo(2);
+    document.getElementById('form-icon').textContent = empresa.emoji || SETOR_ICONS[empresa.setor] || '🏦';
+    document.getElementById('form-title').textContent = empresa.nome;
+    document.getElementById('form-sub').textContent = empresa.obs || 'Dados financeiros IFRS + CNJ';
+    window.scrollTo({ top: 0, behavior:'smooth' });
+    log('NAV', `Selecionada: ${empresa.nome}`);
+  }, 120);
+}
+
+function preencherForm(p) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('f-empresa',   p.nome || '');
+  set('f-setor',     p.setor || 'banco');
+  set('f-meses',     p.meses || '12');
+  set('f-lucro',     p.lucro ? Number(p.lucro).toLocaleString('pt-BR') : '');
+  set('f-provisoes', p.provisoes ? Number(p.provisoes).toLocaleString('pt-BR') : '');
+  set('f-desp-jur',  p.despJur ? Number(p.despJur).toLocaleString('pt-BR') : '');
+  set('f-cond-pagas',p.condPagas ? Number(p.condPagas).toLocaleString('pt-BR') : '');
+  set('f-processos', p.processos ? Number(p.processos).toLocaleString('pt-BR') : '');
+  set('f-selic',     p.selic || '14.9');
+  set('f-anos',      p.anos || '4');
+  set('f-condenacao',p.condenacao ? Number(p.condenacao).toLocaleString('pt-BR') : '');
+  syncSlider();
+}
+
+function voltarSelecao() {
+  document.getElementById('step-form').classList.remove('hidden');
+  document.getElementById('step-results').classList.add('hidden');
+  document.getElementById('step-selector').classList.remove('hidden');
+  document.getElementById('step-form').classList.add('hidden');
+  stepAtivo(1);
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+function voltarForm() {
+  document.getElementById('step-results').classList.add('hidden');
+  document.getElementById('step-form').classList.remove('hidden');
+  stepAtivo(2);
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+function novaAnalise() {
+  document.getElementById('step-results').classList.add('hidden');
+  document.getElementById('step-form').classList.add('hidden');
+  document.getElementById('step-selector').classList.remove('hidden');
+  stepAtivo(1);
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+// ═══════════════════════════════════════════════════════
+// SLIDER
+// ═══════════════════════════════════════════════════════
+function syncSlider() {
+  const v = parseBR(document.getElementById('f-condenacao').value);
+  const sl = document.getElementById('slider');
+  const dp = document.getElementById('slider-display');
+  if (v >= 500 && v <= 500000) sl.value = v;
+  dp.textContent = fmtBRL(v, 0);
+}
+function syncFromSlider() {
+  const v = parseInt(document.getElementById('slider').value);
+  document.getElementById('f-condenacao').value = v.toLocaleString('pt-BR');
+  document.getElementById('slider-display').textContent = fmtBRL(v, 0);
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL EMPRESA
+// ═══════════════════════════════════════════════════════
+function abrirModalEmpresa() {
+  document.getElementById('m-empresa').value = '';
+  document.getElementById('m-setor').value = 'banco';
+  document.getElementById('m-emoji').value = '';
+  document.getElementById('m-obs').value = '';
+  document.getElementById('modal-empresa').classList.add('open');
+}
+function fecharModal() {
+  document.getElementById('modal-empresa').classList.remove('open');
+}
+function confirmarNovaEmpresa() {
+  const nome = document.getElementById('m-empresa').value.trim();
+  if (!nome) { alert('Informe o nome da empresa.'); return; }
+  const id = 'custom_' + Date.now();
+  const nova = {
+    id, nome,
+    setor: document.getElementById('m-setor').value,
+    emoji: document.getElementById('m-emoji').value || SETOR_ICONS[document.getElementById('m-setor').value] || '📋',
+    obs:   document.getElementById('m-obs').value || 'Análise personalizada',
+    meses:'12', lucro:'', provisoes:'', despJur:'', condPagas:'',
+    processos:'', selic:'14.9', anos:'4', condenacao:'3000'
+  };
+  fecharModal();
+  empresaAtual = nova;
+  preencherForm(nova);
+  document.getElementById('step-selector').classList.add('hidden');
+  document.getElementById('step-form').classList.remove('hidden');
+  document.getElementById('form-icon').textContent = nova.emoji;
+  document.getElementById('form-title').textContent = nova.nome;
+  document.getElementById('form-sub').textContent = 'Preencha os dados financeiros IFRS + CNJ';
+  stepAtivo(2);
+  window.scrollTo({ top:0, behavior:'smooth' });
+  log('UI', `Nova empresa: ${nova.nome}`);
+}
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════════════════
+// SALVAR E EXCLUIR EMPRESA
+// ═══════════════════════════════════════════════════════
+function salvarEmpresa() {
+  const nome = document.getElementById('f-empresa').value.trim();
+  if (!nome) { alert('Informe o nome da empresa antes de salvar.'); return; }
+  const dados = coletarDadosForm();
+  if (!dados) return;
+  const id = empresaAtual?.id?.startsWith('custom_') ? empresaAtual.id : 'custom_' + Date.now();
+  const obj = {
+    id, nome, emoji: empresaAtual?.emoji || SETOR_ICONS[dados.setor] || '📋',
+    setor: dados.setor, obs: `Salvo em ${new Date().toLocaleDateString('pt-BR')} — ${dados.meses}M`,
+    meses: String(dados.meses), lucro: String(dados.lucro), provisoes: String(dados.provisoes),
+    despJur: String(dados.despJur), condPagas: String(dados.condPagas),
+    processos: String(dados.processos), selic: String(dados.selic*100), anos: String(dados.anos),
+    condenacao: String(dados.condenacao)
+  };
+  const idx = empresasCustom.findIndex(e => e.id === id);
+  if (idx >= 0) empresasCustom[idx] = obj;
+  else empresasCustom.push(obj);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(empresasCustom));
+  renderGridSaved();
+  log('SAVE', `Empresa salva: ${nome}`);
+  const btn = document.getElementById('btn-salvar-emp');
+  const orig = btn.textContent;
+  btn.textContent = '✅ Salvo!';
+  setTimeout(() => btn.textContent = orig, 2000);
+}
+function excluirEmpresa(id, event) {
+  event?.stopPropagation();
+  if (!confirm('Excluir esta empresa do banco de dados local?')) return;
+  empresasCustom = empresasCustom.filter(e => e.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(empresasCustom));
+  renderGridSaved();
+  log('DEL', `Empresa excluída: ${id}`);
+}
+
+// ═══════════════════════════════════════════════════════
+// LIMPAR FORMULÁRIO
+// ═══════════════════════════════════════════════════════
+function limparForm() {
+  ['f-lucro','f-provisoes','f-desp-jur','f-cond-pagas','f-processos'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-selic').value = '14.9';
+  document.getElementById('f-anos').value  = '4';
+  document.getElementById('f-condenacao').value = '';
+  document.getElementById('slider').value  = '3000';
+  document.getElementById('slider-display').textContent = 'R$ 3.000';
+  document.getElementById('alert-form').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════
+// COLETAR DADOS DO FORMULÁRIO
+// ═══════════════════════════════════════════════════════
+function coletarDadosForm() {
+  const v = id => document.getElementById(id)?.value?.trim() || '';
+  const empresa   = v('f-empresa');
+  const setor     = v('f-setor');
+  const meses     = parseBR(v('f-meses')) || 12;
+  const lucro     = parseBR(v('f-lucro'));
+  const provisoes = parseBR(v('f-provisoes'));
+  const despJur   = parseBR(v('f-desp-jur'));
+  const condPagas = parseBR(v('f-cond-pagas'));
+  const processos = parseBR(v('f-processos'));
+  const selic     = parseBR(v('f-selic')) / 100; // decimal
+  const anos      = parseBR(v('f-anos')) || 4;
+  const condenacao= parseBR(v('f-condenacao'));
+  const instancia = v('f-instancia');
+
+  const alertEl = document.getElementById('alert-form');
+  if (!empresa || !lucro || !processos || !condenacao || !provisoes) {
+    alertEl.className = 'alert alert-error';
+    alertEl.innerHTML = '⚠️ Preencha os campos obrigatórios: <strong>Nome, Lucro, Provisões, Processos e Condenação.</strong>';
+    alertEl.classList.remove('hidden');
+    alertEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    return null;
+  }
+  alertEl.classList.add('hidden');
+  return { empresa, setor, meses, lucro, provisoes, despJur, condPagas, processos, selic, anos, condenacao, instancia };
+}
+
+// ═══════════════════════════════════════════════════════
+// MOTOR DE CÁLCULO — REGRAS DOCUMENTADAS
+// ═══════════════════════════════════════════════════════
+function calcular() {
+  const dados = coletarDadosForm();
+  if (!dados) return;
+
+  const { empresa, setor, meses, lucro, provisoes, despJur, condPagas,
+          processos, selic, anos, condenacao, instancia } = dados;
+
+  log('CALC', `Iniciando: ${empresa} | Lucro: ${fmtBRL(lucro,0)} (${meses}m) | Proc: ${processos.toLocaleString('pt-BR')} | Cond: ${fmtBRL(condenacao,0)}`);
+
+  // ── REGRA 2: Normalização para base anual ───────────────────
+  const lucroAnual = lucro * 12 / meses;
+  log('CALC', `Lucro anualizado: ${fmtBRL(lucroAnual,0)}`);
+
+  // ── Métricas temporais ────────────────────────────────────────
+  const lucroMinuto = lucroAnual / (365 * 24 * 60);
+  const lucroDia    = lucroAnual / 365;
+  const lucroHora   = lucroAnual / (365 * 24);
+
+  // ── Custo jurídico por processo ───────────────────────────────
+  const custoJurTotal   = despJur + condPagas;
+  const despPorProc     = processos > 0 ? despJur   / processos : 0;
+  const condPagaPorProc = processos > 0 ? condPagas / processos : 0;
+  const custoTotPorProc = processos > 0 ? custoJurTotal / processos : 0;
+  const ticketMedio     = processos > 0 ? provisoes / processos : 0;
+
+  // ── REGRA 3: SELIC LINEAR ────────────────────────────────────
+  // rendimento = valor × taxa × tempo (NÃO composta)
+  const rendCond    = condenacao * selic * anos;
+  const custoReal   = condenacao - rendCond;
+  const rendProv    = provisoes * selic;           // ao ano
+  const rendProvDia = rendProv / 365;
+  const rendProvMin = rendProv / (365 * 24 * 60);
+  const rendProvProc= processos > 0 ? rendProv / processos : 0;
+
+  // ── REGRA 4: Thresholds ───────────────────────────────────────
+  const tDia     = lucroDia;                    // 1 dia de lucro — mínimo perceptível
+  const t001pct  = lucroAnual * 0.00001;        // 0,001%
+  const t01pct   = lucroAnual * 0.001;          // 0,1%
+  const t1pct    = lucroAnual * 0.01;           // 1%
+  const t5pct    = lucroAnual * 0.05;           // 5%
+  const t10pct   = lucroAnual * 0.10;           // 10%
+  const tCustoProc = custoTotPorProc;           // igual custo jurídico/processo
+  const tTicket    = ticketMedio;               // igual ticket médio
+
+  // Nível da condenação atual
+  function getNivelBadge(v) {
+    if (v < t001pct)  return { html:'<span class="nivel-badge nb-nulo">NULO</span>',     cls:'nb-nulo', label:'NULO' };
+    if (v < tDia)     return { html:'<span class="nivel-badge nb-sub">SUB-PERCEPTÍVEL</span>', cls:'nb-sub', label:'SUB-PERCEPTÍVEL' };
+    if (v < t1pct)    return { html:'<span class="nivel-badge nb-min">MÍNIMO</span>',    cls:'nb-min', label:'MÍNIMO' };
+    if (v < t5pct)    return { html:'<span class="nivel-badge nb-mod">RELEVANTE</span>', cls:'nb-mod', label:'RELEVANTE' };
+    if (v < t10pct)   return { html:'<span class="nivel-badge nb-rel">SIGNIFICATIVO</span>', cls:'nb-rel', label:'SIGNIFICATIVO' };
+    return { html:'<span class="nivel-badge nb-full">DISSUASÓRIO REAL</span>', cls:'nb-full', label:'DISSUASÓRIO REAL' };
+  }
+  const nivelAtual = getNivelBadge(condenacao);
+
+  // ── RENDERIZAÇÃO ──────────────────────────────────────────────
+  // Legal box
+  const emoji = empresaAtual?.emoji || SETOR_ICONS[setor] || '🏦';
+  document.getElementById('legal-text').innerHTML =
+    `<strong>${escH(empresa)}</strong> — ${processos.toLocaleString('pt-BR')} processos no polo passivo (CNJ) ·
+    Lucro ${meses}M: <strong>${fmtBRL(lucro,0)}</strong> → anualizado: <strong>${fmtBRL(lucroAnual,0)}</strong> ·
+    Condenação analisada: <strong>${fmtBRL(condenacao,0)}</strong> (${nivelAtual.html}) ·
+    SELIC: ${(selic*100).toFixed(1)}% a.a. · Duração: ${anos} anos · Instância: ${instancia}.
+    <br><em style="font-size:.73rem;color:var(--text-mid);">Metodologia: IFRS + CNJ/Data.Jus + BCB | Caio Mário · Cavalieri · STJ | Law & Economics</em>`;
+
+  // KPIs
+  document.getElementById('result-summary').innerHTML = `
+    <div class="rsumm-card danger">
+      <div class="rsumm-label">⚠️ Condenação Atual</div>
+      <div class="rsumm-val">${fmtBRL(condenacao,0)}</div>
+      <div class="rsumm-sub">Nível: ${nivelAtual.label}</div>
+    </div>
+    <div class="rsumm-card">
+      <div class="rsumm-label">💸 Custo Real (SELIC ${anos}a)</div>
+      <div class="rsumm-val">${fmtBRL(custoReal,2)}</div>
+      <div class="rsumm-sub">Após rendimento sobre provisão</div>
+    </div>
+    <div class="rsumm-card gold">
+      <div class="rsumm-label">📊 Mínimo Perceptível</div>
+      <div class="rsumm-val">${fmtBRL(tDia,0)}</div>
+      <div class="rsumm-sub">1 dia de lucro (lucro ÷ 365)</div>
+    </div>
+    <div class="rsumm-card highlight">
+      <div class="rsumm-label">🎯 Dissuasório Real</div>
+      <div class="rsumm-val">${fmtBRL(t1pct,0)}</div>
+      <div class="rsumm-sub">1% do lucro anual</div>
+    </div>
+    <div class="rsumm-card blue">
+      <div class="rsumm-label">🔴 Dissuasório Pleno</div>
+      <div class="rsumm-val">${fmtBRL(t5pct,0)}</div>
+      <div class="rsumm-sub">5% — mudança comportamental</div>
+    </div>
+  `;
+
+  // Custo Jurídico + SELIC
+  document.getElementById('custo-sub').textContent = `SELIC ${(selic*100).toFixed(1)}% a.a. sobre R$ ${fmtN(provisoes/1e6,2)}M provisionados`;
+  document.getElementById('custo-tags').innerHTML = `<span class="tag tag-teal">Lucro ${meses}M: ${fmtBRL(lucro,0)}</span>`;
+  document.getElementById('custo-grid').innerHTML = `
+    <div style="padding:1.25rem;border-right:1px solid var(--gray-brd);">
+      <div style="font-size:.62rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin-bottom:0.75rem;padding-bottom:.5rem;border-bottom:2px solid var(--red-bg);">⚖️ Custo Jurídico por Processo</div>
+      <div style="background:var(--red-bg);border:1.5px solid var(--red-brd);border-radius:8px;padding:.85rem;margin-bottom:.85rem;">
+        <div style="font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-bottom:.25rem;">Custo Total 9M/Anual</div>
+        <div style="font-family:var(--font-serif);font-size:1.5rem;font-weight:700;color:var(--text);">${fmtBRL(custoJurTotal,0)}</div>
+        <div style="font-size:.65rem;color:var(--text-mid);margin-top:.2rem;">Por processo: ${fmtBRL(custoTotPorProc,2)} · Ticket pago: ${fmtBRL(condPagaPorProc,2)}</div>
+      </div>
+      <table style="width:100%;font-size:.74rem;border-collapse:collapse;">
+        ${[
+          ['Despesas jurídicas (defesa)', fmtBRL(despJur,0), ''],
+          ['Condenações pagas (consumo)', fmtBRL(condPagas,0), ''],
+          ['Provisões constituídas', fmtBRL(provisoes,0), ''],
+          ['Custo jurídico/processo', fmtBRL(custoTotPorProc,2), 'td-teal'],
+          ['Custo defesa/processo', fmtBRL(despPorProc,2), ''],
+          ['Ticket médio pago/processo', fmtBRL(condPagaPorProc,2), ''],
+          [`Custo real da cond. (SELIC ${(selic*100).toFixed(1)}% × ${anos}a)`, fmtBRL(custoReal,2), 'td-danger'],
+        ].map(([l,v,c]) => `<tr style="border-bottom:1px solid var(--gray-brd);">
+          <td style="padding:.4rem 0;color:var(--text-mid);">${l}</td>
+          <td style="padding:.4rem 0;text-align:right;" class="${c}">${v}</td>
+        </tr>`).join('')}
+      </table>
+    </div>
+    <div style="padding:1.25rem;">
+      <div style="font-size:.62rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--success);margin-bottom:0.75rem;padding-bottom:.5rem;border-bottom:2px solid var(--success-bg);">📈 Rendimento SELIC — Banco Investe o Provisionado</div>
+      <div style="background:var(--success-bg);border:1.5px solid rgba(26,107,72,.3);border-radius:8px;padding:.85rem;margin-bottom:.85rem;">
+        <div style="font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--success);margin-bottom:.25rem;">Rendimento Total Constituído/Ano</div>
+        <div style="font-family:var(--font-serif);font-size:1.5rem;font-weight:700;color:var(--text);">${fmtBRL(rendProv,0)}</div>
+        <div style="font-size:.65rem;color:var(--text-mid);margin-top:.2rem;">SELIC ${(selic*100).toFixed(1)}% a.a. × ${fmtBRL(provisoes,0)}</div>
+      </div>
+      <table style="width:100%;font-size:.74rem;border-collapse:collapse;">
+        ${[
+          ['Rendimento anual estimado', fmtBRL(rendProv,0), 'td-success'],
+          ['Rendimento mensal', fmtBRL(rendProv/12,0), ''],
+          ['Rendimento diário', fmtBRL(rendProvDia,0), ''],
+          ['Rendimento por processo/ano', fmtBRL(rendProvProc,2), ''],
+          [`Rendimento sobre cond. (${anos}a)`, fmtBRL(rendCond,2), 'td-success'],
+          ['Custo líquido efetivo', fmtBRL(custoReal,2), custoReal < 0 ? 'td-success' : 'td-danger'],
+        ].map(([l,v,c]) => `<tr style="border-bottom:1px solid var(--gray-brd);">
+          <td style="padding:.4rem 0;color:var(--text-mid);">${l}</td>
+          <td style="padding:.4rem 0;text-align:right;" class="${c}">${v}</td>
+        </tr>`).join('')}
+      </table>
+      ${custoReal < 0 ? `<div class="alert alert-success" style="margin-top:.75rem;font-size:.7rem;">✅ Custo líquido negativo: a empresa <strong>lucra</strong> ${fmtBRL(Math.abs(custoReal),2)} com a demora processual.</div>` : ''}
+    </div>
+  `;
+
+  // Tabela Quantum
+  document.getElementById('quantum-sub').textContent = `${empresa} · Lucro anual: ${fmtBRL(lucroAnual,0)} · ${processos.toLocaleString('pt-BR')} processos`;
+  const linhasQuantum = [
+    { label:'Condenação atual analisada',              val: condenacao,  cls:'nb-nulo', nivel:'NULO',             ativo: true },
+    { label:'Igualar rendimento diário da provisão',   val: rendProvDia, cls:'nb-nulo', nivel:'NULO' },
+    { label:'Igualar custo de defesa por processo',    val: despPorProc, cls:'nb-nulo', nivel:'NULO' },
+    { label:'Igualar custo jurídico total/processo',   val: tCustoProc,  cls:'nb-nulo', nivel:'NULO' },
+    { label:'Limiar marginal (0,1% do lucro anual)',   val: t01pct,      cls:'nb-min',  nivel:'MARGINAL' },
+    { label:`✦ Mínimo Contábil Perceptível (1 dia de lucro) ✦`, val: tDia, cls:'nb-min', nivel:'PERCEPTÍVEL', destaque:true },
+    { label:'Limiar relevante (1% do lucro anual)',    val: t1pct,       cls:'nb-mod',  nivel:'RELEVANTE' },
+    { label:'Dissuasório comportamental (5% do lucro)',val: t5pct,       cls:'nb-rel',  nivel:'SIGNIFICATIVO' },
+    { label:`🔴 Quantum Recomendado — ruptura da equação decisória`, val: Math.max(tDia, t1pct), cls:'nb-rec', nivel:'DISSUASÓRIO REAL', destaque:true },
+  ];
+  document.getElementById('quantum-tbody').innerHTML = linhasQuantum.map(l => {
+    const minutos = l.val / lucroMinuto;
+    const pct = (l.val / lucroAnual * 100).toFixed(l.val < 1000 ? 8 : 4) + '%';
+    const impacto = fmtBRL(l.val * processos, 0);
+    const tempo = fmtTempo(minutos);
+    const rowCls = l.destaque ? 'row-highlight' : '';
+    const tdCls  = l.destaque ? 'td-teal' : '';
+    return `<tr class="${rowCls}">
+      <td class="${tdCls}">${l.label}</td>
+      <td class="${l.destaque?'td-gold':'td-val'}">${fmtBRL(l.val,0)}</td>
+      <td>${pct}</td>
+      <td>${impacto}</td>
+      <td>${tempo} de lucro</td>
+      <td><span class="nivel-badge ${l.cls}">${l.nivel}</span></td>
+    </tr>`;
+  }).join('') + `<tr class="row-total">
+    <td colspan="5">Lucro Anual Referência (base de cálculo dos thresholds)</td>
+    <td>${fmtBRL(lucroAnual,0)}</td>
+  </tr>`;
+
+  // Resposta Central
+  const quantum    = tDia;
+  const quantumRec = Math.max(tDia, t1pct);
+  document.getElementById('resposta-grid').innerHTML = `
+    <div>
+      <div style="font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:.5rem;">O valor mínimo contábil perceptível é:</div>
+      <div style="font-family:var(--font-serif);font-size:3rem;font-weight:700;color:var(--teal);line-height:1;">${fmtBRL(quantum,0)}</div>
+      <div style="font-size:.75rem;color:var(--text-mid);margin-top:.4rem;">Por condenação individual · 1 dia de lucro operacional · ${fmtPct(quantum/lucroAnual*100,4)} do lucro anual</div>
+      <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+        <span class="tag tag-gold">Atual: ${fmtBRL(condenacao,0)}</span>
+        <span class="tag tag-teal">Mínimo: ${fmtBRL(quantum,0)}</span>
+        <span class="tag tag-teal">Dissuasório: ${fmtBRL(t1pct,0)}</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+      ${[
+        { l:'Condenação atual', v: fmtBRL(condenacao,0), s:'Nível: '+nivelAtual.label, c:'danger' },
+        { l:'Mínimo perceptível', v: fmtBRL(quantum,0), s:'1 dia lucro · '+fmtN(quantum/condenacao,1)+'× atual', c:'gold' },
+        { l:'Dissuasório mínimo', v: fmtBRL(t1pct,0), s:'1% lucro · '+fmtN(t1pct/condenacao,1)+'× atual', c:'highlight' },
+        { l:'Dissuasório pleno', v: fmtBRL(t5pct,0), s:'5% lucro · '+fmtN(t5pct/condenacao,1)+'× atual', c:'blue' },
+      ].map(x => `<div class="rsumm-card ${x.c}">
+        <div class="rsumm-label">${x.l}</div>
+        <div class="rsumm-val">${x.v}</div>
+        <div class="rsumm-sub">${x.s}</div>
+      </div>`).join('')}
+    </div>
+  `;
+
+  // 3 Cenários
+  document.getElementById('cenario-grid').innerHTML = `
+    <div class="cenario-card c-danger">
+      <div class="cenario-titulo">🔴 Cenário Atual — ${fmtBRL(condenacao,0)}</div>
+      <div class="cenario-nome">Racional Litigar</div>
+      <div class="cenario-desc">Com ${fmtBRL(condenacao,0)}, o custo real é ${fmtBRL(custoReal,2)} após ${anos} anos de SELIC. A empresa prefere litigar sistematicamente pois o custo total por processo é inferior a qualquer investimento em prevenção.</div>
+      ${[
+        ['Condenação', fmtBRL(condenacao,0)],
+        ['Custo real (SELIC '+anos+'a)', fmtBRL(custoReal,2)],
+        ['Defesa/processo', fmtBRL(despPorProc,2)],
+        ['Total real/processo', fmtBRL(custoReal+despPorProc,2)],
+        ['Status', 'Litígio é racional ✗'],
+      ].map(([l,v]) => `<div class="cenario-row"><span class="cenario-row-lbl">${l}</span><span class="cenario-row-val">${v}</span></div>`).join('')}
+    </div>
+    <div class="cenario-card c-gold">
+      <div class="cenario-titulo">🟡 Limiar Mínimo — ${fmtBRL(quantum,0)}</div>
+      <div class="cenario-nome">Começa a Aparecer</div>
+      <div class="cenario-desc">A partir de ${fmtBRL(quantum,0)} (1 dia de lucro), a condenação supera o rendimento diário sobre provisões e aparece — pela 1.ª vez — nos indicadores internos de gestão de risco e compliance.</div>
+      ${[
+        ['Mínimo perceptível', fmtBRL(quantum,0)],
+        ['% do lucro anual', fmtPct(quantum/lucroAnual*100,4)],
+        ['Múltiplo vs. atual', fmtN(quantum/condenacao,1)+'×'],
+        ['Impacto carteira total', fmtBRL(quantum*processos,0)],
+        ['Status', '1.º nível de alerta ⚠️'],
+      ].map(([l,v]) => `<div class="cenario-row"><span class="cenario-row-lbl">${l}</span><span class="cenario-row-val">${v}</span></div>`).join('')}
+    </div>
+    <div class="cenario-card c-success">
+      <div class="cenario-titulo">🟢 Dissuasório Real — ${fmtBRL(t1pct,0)} a ${fmtBRL(t5pct,0)}</div>
+      <div class="cenario-nome">Equação Muda</div>
+      <div class="cenario-desc">A partir de ${fmtBRL(t1pct,0)} (1% do lucro), a condenação supera o custo de prevenção. Acima de ${fmtBRL(t5pct,0)} (5%) há mudança comportamental sistêmica — torna-se mais barato adequar do que litigar.</div>
+      ${[
+        ['Dissuasório mínimo (1%)', fmtBRL(t1pct,0)],
+        ['Múltiplo vs. atual', fmtN(t1pct/condenacao,1)+'×'],
+        ['Dissuasório pleno (5%)', fmtBRL(t5pct,0)],
+        ['Múltiplo pleno', fmtN(t5pct/condenacao,1)+'× a '+fmtN(t10pct/condenacao,1)+'×'],
+        ['Status', 'Compliance racional ✅'],
+      ].map(([l,v]) => `<div class="cenario-row"><span class="cenario-row-lbl">${l}</span><span class="cenario-row-val">${v}</span></div>`).join('')}
+    </div>
+  `;
+
+  // Incentivo Perverso
+  document.getElementById('incentivo-grid').innerHTML = [
+    { l:`Provisão investida (SELIC ${(selic*100).toFixed(1)}%/ano)`, v:fmtBRL(rendProv,0)+'/ano', s:'Retorno anual sobre o caixa provisionado' },
+    { l:'Cada dia de atraso no pagamento', v:fmtBRL(rendProvDia,0), s:'Rendimento diário sobre provisões' },
+    { l:'Duração média do processo', v:`${anos} a ${(+anos+1)} anos`, s:'Período de rentabilização das provisões' },
+    { l:`Rendimento sobre cond. analisada (${anos}a)`, v:fmtBRL(rendCond,2), s:`${fmtBRL(condenacao,0)} provisionado × SELIC × ${anos} anos` },
+  ].map(m => `
+    <div class="inc-card">
+      <div class="inc-label">${m.l}</div>
+      <div class="inc-val">${m.v}</div>
+      <div class="inc-sub">${m.s}</div>
+    </div>
+  `).join('');
+
+  // Análise em lote
+  document.getElementById('lote-sub').textContent = `${empresa} · ${processos.toLocaleString('pt-BR')} processos no polo passivo`;
+  document.getElementById('lote-grid').innerHTML = [
+    { l:'Lote atual (cond. analisada)', v:fmtBRL(condenacao*processos,0), s:`${processos.toLocaleString('pt-BR')} × ${fmtBRL(condenacao,0)}`, c:'' },
+    { l:'Lote mínimo perceptível', v:fmtBRL(tDia*processos,0), s:`× ${fmtBRL(tDia,0)} (1 dia lucro)`, c:'gold' },
+    { l:'Lote dissuasório (1% lucro)', v:fmtBRL(t1pct*processos,0), s:`× ${fmtBRL(t1pct,0)}`, c:'highlight' },
+    { l:'Lote dissuasório pleno (5%)', v:fmtBRL(t5pct*processos,0), s:`× ${fmtBRL(t5pct,0)}`, c:'blue' },
+    { l:'Δ Mínimo vs. Atual', v:fmtBRL((tDia-condenacao)*processos,0), s:'Diferença de responsabilidade', c:'' },
+  ].map(x => `<div class="rsumm-card ${x.c}">
+    <div class="rsumm-label">${x.l}</div>
+    <div class="rsumm-val">${x.v}</div>
+    <div class="rsumm-sub">${x.s}</div>
+  </div>`).join('');
+
+  // Fundamentação Jurídica
+  document.getElementById('fund-grid').innerHTML = [
+    {
+      titulo:'Função Punitivo-Pedagógica — Caio Mário + Cavalieri',
+      nome:'Punitive Damages Brasileiro',
+      texto:`A doutrina exige que o dano moral imponha real sofrimento econômico ao ofensor. O valor deve gerar incômodo decisório — não pode ser inferior ao custo de processar a demanda. Com ${processos.toLocaleString('pt-BR')} processos e custo de defesa de ${fmtBRL(despPorProc,2)}/processo, a condenação de ${fmtBRL(condenacao,0)} é economicamente irrelevante.`
+    },
+    {
+      titulo:'STJ — Proporcionalidade & Capacidade Econômica',
+      nome:'REsp 1.864.973 / REsp 1.767.565',
+      texto:`O STJ consolidou que o quantum deve ser proporcional à capacidade econômica do ofensor. Com lucro anual de ${fmtBRL(lucroAnual,0)} documentado em balanço IFRS, fixar abaixo de 1 dia de lucro (${fmtBRL(tDia,0)}) viola o princípio da proporcionalidade punitiva.`
+    },
+    {
+      titulo:'Teoria do Desestímulo — Law & Economics',
+      nome:'Posner / Calabresi aplicado ao Brasil',
+      texto:`A empresa calcula racionalmente o custo de litigar vs. prevenir. Com custo real de ${fmtBRL(custoReal,2)} por processo (após SELIC sobre provisão por ${anos} anos), o dano moral atual é absorvido como custo operacional — não como estímulo comportamental.`
+    },
+    {
+      titulo:'Precedente CNJ — Evidência Empírica de Indiferença',
+      nome:'ACT nº 060/2021 + Painel CNJ',
+      texto:`${empresa} com ${processos.toLocaleString('pt-BR')} processos e condenações médias abaixo do custo de prevenção comprovadamente não altera comportamento. O rendimento SELIC de ${fmtBRL(rendProv,0)}/ano sobre provisões demonstra a racionalidade do litígio sistêmico.`
+    },
+  ].map(f => `
+    <div class="fund-card">
+      <div class="fund-titulo">${f.titulo}</div>
+      <div class="fund-nome">${f.nome}</div>
+      <div class="fund-texto">${f.texto}</div>
+    </div>
+  `).join('');
+
+  // Conclusão
+  document.getElementById('conclusao-sub').textContent = `${empresa} — síntese para peticionamento`;
+  document.getElementById('conclusao-texto').innerHTML =
+    `Com base na análise integrada das demonstrações financeiras ${meses === 12 ? 'anuais' : `de ${meses} meses`} (IFRS) da <strong>${escH(empresa)}</strong>, dos <strong>${processos.toLocaleString('pt-BR')}</strong> processos no polo passivo (CNJ) e das provisões cíveis de <strong>${fmtBRL(provisoes,0)}</strong>, o <strong>quantum mínimo contábil perceptível</strong> — valor a partir do qual a condenação produz seu primeiro efeito financeiro real — é de <strong>${fmtBRL(quantum,0)}</strong>, equivalente a 1 dia de lucro operacional.
+    A condenação atual de ${fmtBRL(condenacao,0)} tem custo líquido real de apenas <strong>${fmtBRL(custoReal,2)}</strong> após ${anos} anos de SELIC, sendo economicamente inferior ao rendimento sobre as provisões investidas.
+    Para efeito dissuasório real, o quantum deve estar entre <strong>${fmtBRL(t1pct,0)}</strong> (1% do lucro — dissuasório mínimo) e <strong>${fmtBRL(t5pct,0)}</strong> (5% — mudança comportamental sistêmica),
+    representando ${fmtN(t1pct/condenacao,1)}× a ${fmtN(t5pct/condenacao,1)}× o valor atual.`;
+  document.getElementById('conclusao-grid').innerHTML = [
+    { l:'Condenação atual',       v:fmtBRL(condenacao,0), c:'' },
+    { l:'Custo real (SELIC)',     v:fmtBRL(custoReal,2),  c:'' },
+    { l:'Mínimo perceptível',     v:fmtBRL(quantum,0),    c:'gold' },
+    { l:'Dissuasório mínimo',     v:fmtBRL(t1pct,0),      c:'highlight' },
+    { l:'Dissuasório pleno',      v:fmtBRL(t5pct,0),      c:'blue' },
+  ].map(x => `<div class="rsumm-card ${x.c}">
+    <div class="rsumm-label">${x.l}</div>
+    <div class="rsumm-val">${x.v}</div>
+  </div>`).join('');
+
+  // Print meta
+  document.getElementById('print-meta').innerHTML =
+    `Emitido: ${new Date().toLocaleDateString('pt-BR')}<br>${escH(empresa)} | ${processos.toLocaleString('pt-BR')} processos<br>LAADV — Uso Institucional`;
+  document.getElementById('print-header').style.display = '';
+
+  // Navega para resultados
+  document.getElementById('step-form').classList.add('hidden');
+  document.getElementById('step-results').classList.remove('hidden');
+  stepAtivo(3);
+  window.scrollTo({ top:0, behavior:'smooth' });
+
+  log('CALC', `Concluído: Quantum=${fmtBRL(quantum,0)} | Dissuasório=${fmtBRL(t1pct,0)} | Custo real=${fmtBRL(custoReal,2)} | Empresa=${empresa}`);
+
+  // ── GERA O RELATÓRIO JURÍDICO FORMAL ─────────────────────────
+  gerarRelatorioJuridico({
+    empresa, setor, meses, lucro, lucroAnual, provisoes,
+    despJur, condPagas, processos, selic, anos, condenacao, instancia,
+    lucroMinuto, lucroDia, lucroHora,
+    despPorProc, condPagaPorProc, custoTotPorProc, ticketMedio,
+    rendCond, custoReal, rendProv, rendProvDia, rendProvProc: rendProvProc,
+    tDia, t01pct, t1pct, t5pct, t10pct,
+    nivelAtual, quantum: tDia, quantumRec: Math.max(tDia, t1pct),
+    dataCalculo: new Date()
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GERADOR DE RELATÓRIO TÉCNICO-JURÍDICO FORMAL
+// Produz documento em linguagem jurídica para inserção em peças
+// processuais, laudos periciais e memorandos advocatícios.
+// Chamado ao final de calcular() com os dados já computados.
+// ═══════════════════════════════════════════════════════════════════
+function gerarRelatorioJuridico(d) {
+  // d = objeto com todos os valores já calculados pelo calcular()
+  const {
+    empresa, setor, meses, lucro, lucroAnual, provisoes,
+    despJur, condPagas, processos, selic, anos, condenacao, instancia,
+    lucroMinuto, lucroDia, lucroHora,
+    despPorProc, condPagaPorProc, custoTotPorProc, ticketMedio,
+    rendCond, custoReal, rendProv, rendProvDia, rendProvProc,
+    tDia, t01pct, t1pct, t5pct, t10pct,
+    nivelAtual, quantum, quantumRec, dataCalculo
+  } = d;
+
+  // ── Helpers internos ────────────────────────────────────────────
+  const R  = v  => fmtBRL(v, 2);
+  const R0 = v  => fmtBRL(v, 0);
+  const N4 = v  => fmtN(v, 4);
+  const pct= (v,dec) => fmtN(v/lucroAnual*100, dec ?? 6) + '%';
+  const mult= v  => fmtN(v/condenacao, 1) + '×';
+  const selicPct = (selic * 100).toFixed(1);
+  const dtHoje   = dataCalculo.toLocaleDateString('pt-BR', {day:'2-digit',month:'long',year:'numeric'});
+  const instLabel = { '1grau':'1.ª Instância', '2grau':'2.ª Instância', stj:'STJ', stf:'STF' }[instancia] || instancia;
+  const periodoLabel = meses === 12 ? 'exercício anual completo' : `período de ${meses} (${meses === 9?'nove':meses === 6?'seis':'três'}) meses`;
+
+  // ── Atualiza badges do header ────────────────────────────────────
+  document.getElementById('rj-badge-data').textContent = `📅 Emitido em ${dtHoje}`;
+  document.getElementById('rj-doc-title').textContent  = `ANÁLISE DO QUANTUM INDENIZATÓRIO MÍNIMO PARA PRODUÇÃO DE EFEITO DISSUASÓRIO REAL — ${empresa.toUpperCase()}`;
+  document.getElementById('rj-doc-sub').textContent    = `Referência: Ação de Indenização por Dano Moral — ${instLabel} | Condenação analisada: ${R0(condenacao)}`;
+  document.getElementById('rj-footer-left').textContent  = `Luís Albert Advocacia · ${dtHoje} · Referência: ${empresa}`;
+  document.getElementById('rj-footer-right').textContent = `Documento Nº LAADV/QD/${dataCalculo.getFullYear()}-${String(dataCalculo.getMonth()+1).padStart(2,'0')}`;
+
+  // ── CORPO DO DOCUMENTO ──────────────────────────────────────────
+  document.getElementById('rj-body').innerHTML = `
+
+<!-- ──────────────────────────────────────
+     SEÇÃO I — IDENTIFICAÇÃO E OBJETO
+────────────────────────────────────────── -->
+<div class="rj-secao">
+  <div class="rj-secao-num">Seção I</div>
+  <div class="rj-secao-titulo">I — Identificação, Objeto e Delimitação</div>
+
+  <p class="rj-p">O presente memorando técnico-econômico tem por objeto a análise quantitativa do <strong>quantum indenizatório mínimo capaz de produzir efeito dissuasório real</strong> sobre a pessoa jurídica <strong>${escH(empresa)}</strong>, com atuação no segmento de <strong>${escH(setor)}</strong>, doravante denominada simplesmente <em>Ré</em> ou <em>empresa analisada</em>.</p>
+
+  <p class="rj-p">A análise toma por base os dados financeiros públicos consignados nas Demonstrações Financeiras da Ré relativas ao ${periodoLabel} (balanço IFRS/CPC), consolidados com os dados processuais extraídos do Painel de Litigiosidade do Conselho Nacional de Justiça (CNJ/Data.Jus), e com a taxa de juros básica da economia fixada pelo Banco Central do Brasil (BCB/COPOM) no patamar de <strong>${selicPct}% ao ano</strong>.</p>
+
+  <p class="rj-p">O objeto específico desta análise é a condenação por dano moral no valor de <strong>${R0(condenacao)}</strong>, proferida em sede de <strong>${instLabel}</strong>, cuja suficiência para produção de efeito punitivo-pedagógico é examinada a partir de critérios contábeis, econômicos e jurídicos objetivos, conforme metodologia exposta nas seções subsequentes.</p>
+</div>
+
+<!-- ──────────────────────────────────────
+     SEÇÃO II — PREMISSAS METODOLÓGICAS
+────────────────────────────────────────── -->
+<div class="rj-secao">
+  <div class="rj-secao-num">Seção II</div>
+  <div class="rj-secao-titulo">II — Premissas Metodológicas</div>
+
+  <p class="rj-p">A presente análise estrutura-se sobre quatro premissas metodológicas objetivas, cujos fundamentos são os seguintes:</p>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">II.1 — Normalização do Lucro para Base Anual</div>
+    <p class="rj-p no-indent">As Demonstrações Financeiras consultadas abrangem o ${periodoLabel}. Para fins de comparabilidade e cálculo dos limiares de perceptibilidade, o lucro líquido é obrigatoriamente convertido para base anual, mediante a fórmula:</p>
+    <div class="rj-formula-label">Fórmula de Anualização — Premissa Inafastável</div>
+    <div class="rj-formula">Lucro Anual = Lucro do Período × 12 ÷ ${meses}
+= ${R0(lucro)} × 12 ÷ ${meses}
+= ${R0(lucroAnual)}</div>
+    <p class="rj-p no-indent">Esta normalização é premissa inafastável: comparar a condenação com o lucro do período (${meses} meses) subestimaria o poder econômico real da empresa, tornando a análise metodologicamente viciada.</p>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">II.2 — Metodologia SELIC Linear sobre Provisões</div>
+    <p class="rj-p no-indent">Adota-se a fórmula de rendimento linear (não composto) sobre o valor provisionado, por ser a mais conservadora e a que melhor reflete o modelo contábil das provisões cíveis de curto prazo:</p>
+    <div class="rj-formula-label">Fórmula SELIC Linear — Rendimento sobre Provisão</div>
+    <div class="rj-formula">Rendimento = Valor × Taxa × Tempo (anos)
+Custo Real = Condenação − Rendimento
+
+Aplicado ao caso: Custo Real = ${R0(condenacao)} − (${R0(condenacao)} × ${selicPct}% × ${anos})
+= ${R0(condenacao)} − ${R(rendCond)}
+= ${R(custoReal)}</div>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">II.3 — Definição do "Quantum Mínimo Perceptível"</div>
+    <p class="rj-p no-indent">O <em>quantum mínimo contábil perceptível</em> é definido como o menor valor de condenação que supera o rendimento diário obtido pela empresa sobre suas provisões cíveis investidas. Abaixo deste limiar, o dano moral é absorvido como ruído estatístico nos balanços da Ré. O limiar é calculado como:</p>
+    <div class="rj-formula-label">Fórmula do Quantum Mínimo Perceptível</div>
+    <div class="rj-formula">Quantum Mínimo = Lucro Anual ÷ 365 (dias corridos)
+= ${R0(lucroAnual)} ÷ 365
+= ${R0(tDia)}</div>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">II.4 — Fontes de Dados Utilizadas</div>
+    <p class="rj-p no-indent">Todas as premissas numéricas adotadas neste memorando são derivadas de fontes primárias públicas e verificáveis, a saber: (i) Demonstrações Financeiras IFRS/CPC da ${escH(empresa)}, relativas ao ${periodoLabel}; (ii) Painel de Litigiosidade do CNJ e/ou Relatório dos 100 Maiores Litigantes; e (iii) taxa SELIC fixada pelo COPOM/BCB, vigente em ${dtHoje}.</p>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────
+     SEÇÃO III — BASE DE DADOS
+────────────────────────────────────────── -->
+<div class="rj-secao">
+  <div class="rj-secao-num">Seção III</div>
+  <div class="rj-secao-titulo">III — Base de Dados Consolidada</div>
+
+  <p class="rj-p">Os dados abaixo integram a base de cálculo desta análise e foram extraídos das fontes referidas na Seção II:</p>
+
+  <div class="rj-table-wrap">
+    <table class="rj-table">
+      <thead><tr>
+        <th>Dado</th><th>Fonte</th><th>Valor</th><th>Obs.</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Lucro líquido (${meses}M)</td><td>DRE — IFRS</td><td class="rj-td-v">${R0(lucro)}</td><td>Resultado do exercício/período</td></tr>
+        <tr><td>Lucro anual (normalizado)</td><td>Cálculo próprio</td><td class="rj-td-teal">${R0(lucroAnual)}</td><td>Base de todos os limiares</td></tr>
+        <tr><td>Provisões cíveis/trabalhistas</td><td>Nota Explicativa</td><td class="rj-td-v">${R0(provisoes)}</td><td>Contingências registradas</td></tr>
+        <tr><td>Despesas jurídicas (defesa)</td><td>DRE / Nota</td><td class="rj-td-v">${R0(despJur)}</td><td>Honorários + custas + peritos</td></tr>
+        <tr><td>Condenações efetivamente pagas</td><td>Fluxo de Caixa</td><td class="rj-td-v">${R0(condPagas)}</td><td>Saídas por sentenças/acordos</td></tr>
+        <tr><td>Processos no polo passivo</td><td>CNJ / Data.Jus</td><td class="rj-td-v">${processos.toLocaleString('pt-BR')}</td><td>Universo de demandas</td></tr>
+        <tr><td>Taxa SELIC vigente</td><td>BCB / COPOM</td><td class="rj-td-v">${selicPct}% a.a.</td><td>Base de rendimento sobre provisões</td></tr>
+        <tr><td>Duração média do processo</td><td>CNJ / Referência</td><td class="rj-td-v">${anos} anos</td><td>${instLabel}</td></tr>
+        <tr class="rj-tr-dest"><td>Condenação analisada</td><td>Processo em tela</td><td class="rj-td-gold">${R0(condenacao)}</td><td>${instLabel} — objeto desta análise</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────
+     SEÇÃO IV — DESENVOLVIMENTO DOS CÁLCULOS
+────────────────────────────────────────── -->
+<div class="rj-secao">
+  <div class="rj-secao-num">Seção IV</div>
+  <div class="rj-secao-titulo">IV — Desenvolvimento dos Cálculos</div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">IV.1 — Métricas Operacionais Derivadas do Lucro Anual</div>
+    <p class="rj-p no-indent">A partir do lucro anualizado de <strong>${R0(lucroAnual)}</strong>, derivam-se as seguintes métricas temporais de rentabilidade, que servirão de parâmetro para aferir a proporcionalidade da condenação:</p>
+    <div class="rj-formula-label">Cálculo das Métricas Temporais</div>
+    <div class="rj-formula">Lucro por Hora   = ${R0(lucroAnual)} ÷ (365 × 24)            = ${R(lucroHora)}/hora
+Lucro por Minuto = ${R0(lucroAnual)} ÷ (365 × 24 × 60)       = ${R(lucroMinuto)}/minuto
+Lucro por Dia    = ${R0(lucroAnual)} ÷ 365                    = ${R0(lucroDia)}/dia</div>
+    <p class="rj-p no-indent">Esses valores revelam que a condenação de <strong>${R0(condenacao)}</strong> corresponde ao lucro operacional de aproximadamente <strong>${fmtTempo(condenacao/lucroMinuto)}</strong> de operação da empresa, tornando-a praticamente imperceptível nos balanços corporativos.</p>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">IV.2 — Análise do Custo Jurídico por Processo</div>
+    <p class="rj-p no-indent">Com base nos dados financeiros consolidados, apura-se o custo médio de cada processo para a Ré:</p>
+    <div class="rj-formula-label">Custo Jurídico por Processo</div>
+    <div class="rj-formula">Custo Total do Contencioso = Despesas Jurídicas + Condenações Pagas
+= ${R0(despJur)} + ${R0(condPagas)} = ${R0(despJur + condPagas)}
+
+Custo Médio de Defesa/Processo    = ${R0(despJur)} ÷ ${processos.toLocaleString('pt-BR')} = ${R(despPorProc)}
+Ticket Médio Pago/Processo        = ${R0(condPagas)} ÷ ${processos.toLocaleString('pt-BR')} = ${R(condPagaPorProc)}
+Custo Jurídico Total/Processo     = ${R(despPorProc)} + ${R(condPagaPorProc)} = ${R(custoTotPorProc)}</div>
+    <p class="rj-p no-indent">Verifica-se que o custo total médio por processo é de <strong>${R(custoTotPorProc)}</strong>, sendo <strong>${R(despPorProc)}</strong> de defesa e <strong>${R(condPagaPorProc)}</strong> de condenações pagas. A comparação com a condenação analisada (${R0(condenacao)}) demonstra que a empresa já precifica esse custo em sua estratégia litigiosa.</p>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">IV.3 — O Efeito SELIC: Custo Real da Condenação</div>
+    <p class="rj-p no-indent">O mecanismo contábil de provisão permite que a empresa registre a contingência como despesa (reduzindo o lucro tributável) sem, contudo, efetuar o desembolso imediato. O caixa correspondente permanece investido, gerando rendimentos à taxa SELIC. Esse fenômeno — que denomina-se o <em>incentivo perverso ao litígio</em> — é demonstrado algebricamente:</p>
+    <div class="rj-formula-label">Custo Real da Condenação após Rendimento SELIC</div>
+    <div class="rj-formula">Rendimento sobre a Condenação Provisionada:
+    Rend. = Condenação × Taxa SELIC × Duração do Processo
+    Rend. = ${R0(condenacao)} × ${selicPct}% × ${anos} anos
+    Rend. = ${R(rendCond)}
+
+Custo Líquido Real:
+    Custo Real = Condenação − Rendimento
+    Custo Real = ${R0(condenacao)} − ${R(rendCond)}
+    Custo Real = ${R(custoReal)}${custoReal < 0 ? ' ← NEGATIVO: o banco LUCRA' : ''}</div>
+    ${custoReal < 0
+      ? `<div class="rj-destaque"><div class="rj-destaque-titulo">⚠️ Situação Crítica — Custo Negativo</div><div class="rj-destaque-val">${R(custoReal)}</div><div class="rj-destaque-sub">O rendimento SELIC (${R(rendCond)}) supera integralmente o valor da condenação (${R0(condenacao)}). A empresa aufere <strong>lucro líquido</strong> com o processo, o que torna a condenação atual financeiramente incentivadora do ilícito — e não dissuasória.</div></div>`
+      : `<p class="rj-p no-indent">Conclui-se que o custo líquido real da condenação de <strong>${R0(condenacao)}</strong> para a ${escH(empresa)}, após ${anos} anos de rendimento SELIC sobre a provisão constituída, é de apenas <strong>${R(custoReal)}</strong> — valor que não excede sequer o custo médio de defesa por processo (${R(despPorProc)}), evidenciando a total ineficiência dissuasória da condenação.</p>`
+    }
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">IV.4 — Rendimento SELIC sobre as Provisões — Prova do Incentivo Perverso</div>
+    <p class="rj-p no-indent">Além do efeito individual, a análise macro do portfólio de provisões revela o chamado <em>incentivo perverso ao litígio sistêmico</em>: a empresa, ao provisionar <strong>${R0(provisoes)}</strong> em contingências, mas manter o caixa investido na SELIC, aufere receita financeira que torna o contencioso massificado economicamente racional:</p>
+    <div class="rj-formula-label">Rendimento Global sobre Provisões</div>
+    <div class="rj-formula">Rendimento Anual sobre Provisões:
+    Rend. Anual = ${R0(provisoes)} × ${selicPct}% = ${R0(rendProv)}/ano
+
+Desdobramentos:
+    Rendimento Mensal  = ${R0(rendProv)} ÷ 12  = ${R0(rendProv/12)}/mês
+    Rendimento Diário  = ${R0(rendProv)} ÷ 365 = ${R0(rendProvDia)}/dia
+    Rendimento/Processo= ${R0(rendProv)} ÷ ${processos.toLocaleString('pt-BR')} processos = ${R(rendProvProc)}/processo/ano</div>
+    <p class="rj-p no-indent">O rendimento de <strong>${R0(rendProvDia)} por dia</strong> sobre as provisões investidas demonstra que, para a empresa, cada dia de retardo no pagamento gera receita financeira superior ao custo de manter o litígio em curso. A lógica decisória corporativa é, portanto, <em>contrária à conformidade</em> enquanto o quantum das condenações permanecer abaixo deste limiar.</p>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">IV.5 — Definição dos Limiares de Perceptibilidade</div>
+    <p class="rj-p no-indent">A partir das métricas apuradas, calculam-se os limiares progressivos de perceptibilidade financeira, que correspondem aos valores nos quais a condenação começa a produzir efeito contábil-decisório crescente sobre a empresa-ré:</p>
+    <div class="rj-formula-label">Limiares de Perceptibilidade — Cálculo dos Thresholds</div>
+    <div class="rj-formula">L1 — Iguala rendimento diário de provisão: ${R0(rendProvDia)}
+L2 — 0,1% do lucro anual:               ${R0(lucroAnual)} × 0,001 = ${R0(t01pct)}
+L3 — Mínimo Perceptível (1 dia lucro):   ${R0(lucroAnual)} ÷ 365   = ${R0(tDia)}  ← QUANTUM MÍNIMO
+L4 — Dissuasório Mínimo (1% lucro):     ${R0(lucroAnual)} × 0,01  = ${R0(t1pct)}
+L5 — Dissuasório Pleno (5% lucro):      ${R0(lucroAnual)} × 0,05  = ${R0(t5pct)}
+L6 — Dissuasório Sistêmico (10% lucro): ${R0(lucroAnual)} × 0,10  = ${R0(t10pct)}</div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────
+     SEÇÃO V — TABELA SÍNTESE
+────────────────────────────────────────── -->
+<div class="rj-secao">
+  <div class="rj-secao-num">Seção V</div>
+  <div class="rj-secao-titulo">V — Tabela Síntese dos Limiares de Perceptibilidade</div>
+
+  <p class="rj-p">A tabela a seguir consolida os limiares calculados, evidenciando a posição da condenação atual (${R0(condenacao)}) em relação à escala de efetividade dissuasória da ${escH(empresa)}:</p>
+
+  <div class="rj-table-wrap">
+    <table class="rj-table">
+      <thead><tr>
+        <th>Nível</th><th>Critério</th><th>Quantum (R$)</th><th>% Lucro Anual</th><th>Abs. em</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Atual</td><td>Condenação em análise</td><td class="rj-td-gold">${R0(condenacao)}</td><td>${pct(condenacao,8)}</td><td>${fmtTempo(condenacao/lucroMinuto)} de lucro</td><td>⛔ ${nivelAtual.label}</td></tr>
+        <tr><td>L2</td><td>0,1% do lucro anual</td><td class="rj-td-v">${R0(t01pct)}</td><td>0,1000%</td><td>${fmtTempo(t01pct/lucroMinuto)} de lucro</td><td>⚠️ Marginal</td></tr>
+        <tr class="rj-tr-dest"><td><strong>L3 ★</strong></td><td><strong>Mínimo Perceptível — 1 dia de lucro</strong></td><td class="rj-td-teal"><strong>${R0(tDia)}</strong></td><td>${pct(tDia,4)}</td><td>1 dia de lucro</td><td>📌 Perceptível</td></tr>
+        <tr><td>L4</td><td>Dissuasório Mínimo — 1% do lucro</td><td class="rj-td-v">${R0(t1pct)}</td><td>1,0000%</td><td>${fmtTempo(t1pct/lucroMinuto)} de lucro</td><td>🎯 Relevante</td></tr>
+        <tr><td>L5</td><td>Dissuasório Pleno — 5% do lucro</td><td class="rj-td-v">${R0(t5pct)}</td><td>5,0000%</td><td>${fmtTempo(t5pct/lucroMinuto)} de lucro</td><td>✅ Significativo</td></tr>
+        <tr class="rj-tr-rec"><td>★ REC.</td><td>Quantum Recomendado (entre L4 e L5)</td><td>${R0(t1pct)} a ${R0(t5pct)}</td><td>1% a 5%</td><td>—</td><td>⚖️ Dissuasório Real</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rj-destaque">
+    <div class="rj-destaque-titulo">★ Quantum Mínimo Contábil Perceptível Apurado</div>
+    <div class="rj-destaque-val">${R0(tDia)}</div>
+    <div class="rj-destaque-sub">${fmtN(tDia/condenacao,1)}× o valor atual (${R0(condenacao)}) · Equivale a 1 dia de lucro operacional da ${escH(empresa)} · ${pct(tDia,4)} do lucro anual de ${R0(lucroAnual)}</div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────
+     SEÇÃO VI — FUNDAMENTAÇÃO JURÍDICA
+────────────────────────────────────────── -->
+<div class="rj-secao">
+  <div class="rj-secao-num">Seção VI</div>
+  <div class="rj-secao-titulo">VI — Fundamentação Jurídica</div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">VI.1 — Função Punitivo-Pedagógica do Dano Moral: Doutrina de Caio Mário e Cavalieri Filho</div>
+    <p class="rj-p">A doutrina brasileira, a partir das lições seminais de <strong>Caio Mário da Silva Pereira</strong> e de <strong>Sérgio Cavalieri Filho</strong>, consolidou que o dano moral cumpre dupla função: (i) compensatória, de mitigar o sofrimento da vítima; e (ii) punitivo-pedagógica, de desestimular a repetição da conduta ilícita pelo ofensor. É nessa segunda dimensão que a presente análise se centra.</p>
+    <div class="rj-citacao">
+      <div class="rj-citacao-texto">"A indenização deve ser fixada em montante que represente para o ofensor um sacrifício real, de modo a produzir o desestímulo necessário à não repetição da conduta lesiva. A indenização simbólica ou inexpressiva não cumpre esta função."</div>
+      <div class="rj-citacao-fonte">CAVALIERI FILHO, Sérgio. Programa de Responsabilidade Civil. 12.ª ed. São Paulo: Atlas, 2015, p. 119.</div>
+    </div>
+    <p class="rj-p">No caso concreto, a condenação de <strong>${R0(condenacao)}</strong> representa apenas <strong>${pct(condenacao,8)}</strong> do lucro anual da ${escH(empresa)}, com custo líquido real de <strong>${R(custoReal)}</strong> após rendimento SELIC. Tal valor, pela escala econômica da Ré, não produz qualquer <em>sacrifício real</em> — e, portanto, falha integralmente na função punitivo-pedagógica.</p>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">VI.2 — Proporcionalidade e Capacidade Econômica do Ofensor: Jurisprudência do Superior Tribunal de Justiça</div>
+    <p class="rj-p">O Superior Tribunal de Justiça consolidou, em numerosos precedentes, que o quantum do dano moral deve guardar proporção com a <strong>capacidade econômica do ofensor</strong>, de modo a produzir impacto real em suas finanças e assim cumprir a função preventivo-geral da responsabilidade civil.</p>
+    <div class="rj-citacao">
+      <div class="rj-citacao-texto">"Na fixação do valor da indenização por danos morais, devem ser levados em conta o nível econômico do ofensor e do ofendido, a extensão do dano e o caráter pedagógico e punitivo da sanção, de modo que a indenização não seja irrisória nem cause enriquecimento indevido."</div>
+      <div class="rj-citacao-fonte">STJ, REsp n.º 1.864.973/SP, Rel. Min. Marco Aurélio Bellizze, 3.ª Turma, j. 09/02/2021.</div>
+    </div>
+    <div class="rj-citacao">
+      <div class="rj-citacao-texto">"O valor da condenação por danos morais deve ser suficiente para inibir a reiteração da conduta ilícita, levando-se em conta a condição financeira do ofensor e a gravidade do ato praticado."</div>
+      <div class="rj-citacao-fonte">STJ, AgInt no REsp n.º 1.767.565/SP, Rel. Min. Luis Felipe Salomão, 4.ª Turma, j. 03/09/2019.</div>
+    </div>
+    <p class="rj-p">Com lucro anual de <strong>${R0(lucroAnual)}</strong> documentado em balanços IFRS auditados, a fixação do quantum abaixo do limiar de 1 dia de lucro (<strong>${R0(tDia)}</strong>) viola frontalmente o princípio da proporcionalidade punitiva consagrado pelo STJ, tornando a condenação juridicamente insuficiente.</p>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">VI.3 — Teoria do Desestímulo e Análise Econômica do Direito (Law & Economics)</div>
+    <p class="rj-p">A Análise Econômica do Direito (<em>Law & Economics</em>), a partir das obras de <strong>Richard Posner</strong> e <strong>Guido Calabresi</strong>, demonstra que as regras de responsabilidade civil somente cumprem sua função alocativa quando o custo esperado da condenação supera o benefício esperado da conduta ilícita para o potencial ofensor. Quando a relação é inversa — como se demonstra nos cálculos desta análise —, o sistema jurídico passa a <em>subsidiar</em> o ilícito.</p>
+    <div class="rj-citacao">
+      <div class="rj-citacao-texto">"A responsabilidade civil eficiente exige que o potencial ofensor internalize o custo social de suas atividades. Quando o valor esperado das indenizações for inferior ao ganho advindo da atividade lesiva, haverá incentivo econômico para a prática reiterada do ilícito."</div>
+      <div class="rj-citacao-fonte">POSNER, Richard A. Economic Analysis of Law. 9.ª ed. New York: Wolters Kluwer, 2014, p. 215. (Tradução livre)</div>
+    </div>
+    <p class="rj-p">No caso da ${escH(empresa)}, a equação decisória é cristalina: com <strong>${processos.toLocaleString('pt-BR')}</strong> processos em curso, custo de defesa de <strong>${R(despPorProc)}</strong> por processo e custo real da condenação de apenas <strong>${R(custoReal)}</strong>, a empresa tem incentivo econômico <em>positivo</em> para litigar massivamente — pois o rendimento SELIC de <strong>${R0(rendProv)}/ano</strong> sobre suas provisões supera o custo global do contencioso.</p>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">VI.4 — Litigância Habitual e Evidência Empírica de Indiferença Comportamental</div>
+    <p class="rj-p">O <strong>Conselho Nacional de Justiça (CNJ)</strong>, por meio de seus Relatórios de Litigiosidade e do Painel de Análise de Maiores Litigantes, comprova empiricamente que empresas com elevado número de processos no polo passivo — como a ${escH(empresa)}, com <strong>${processos.toLocaleString('pt-BR')}</strong> ações — não alteram comportamento quando submetidas a condenações inferiores ao custo de prevenção e compliance. O dado é relevantíssimo: se as condenações fossem eficazes, o volume litigioso tenderia à redução ao longo dos exercícios. A manutenção ou crescimento da carteira de processos é, por si só, evidência da indiferença comportamental à condenação.</p>
+    <p class="rj-p">Nesse contexto, a <strong>Acordada CNJ nº 060/2021</strong> e os Relatórios Anuais de Litigiosidade constituem prova documental de que a estratégia de litigância massificada a baixo custo é consciente e calculada, razão pela qual a majoração do quantum não apenas é autorizada — é <em>necessária</em> para que o sistema jurídico cumpra sua função regulatória.</p>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────
+     SEÇÃO VII — CONCLUSÃO E PEDIDO
+────────────────────────────────────────── -->
+<div class="rj-secao">
+  <div class="rj-secao-num">Seção VII</div>
+  <div class="rj-secao-titulo">VII — Conclusão e Pedido de Majoração do Quantum</div>
+
+  <p class="rj-p">Com base na análise integrada das Demonstrações Financeiras IFRS da <strong>${escH(empresa)}</strong> (${periodoLabel}), dos dados processuais do CNJ (${processos.toLocaleString('pt-BR')} processos no polo passivo), da taxa SELIC de ${selicPct}% ao ano e da metodologia exposta nas seções anteriores, conclui-se:</p>
+
+  <p class="rj-p"><strong>(i)</strong> A condenação atual de <strong>${R0(condenacao)}</strong> representa <strong>${pct(condenacao,8)}</strong> do lucro anual da empresa-ré, com custo líquido real de apenas <strong>${R(custoReal)}</strong> após ${anos} anos de rendimento SELIC sobre a provisão constituída — valor economicamente irrelevante para uma empresa com faturamento da magnitude da Ré;</p>
+
+  <p class="rj-p"><strong>(ii)</strong> O <strong>quantum mínimo contábil perceptível</strong> — valor a partir do qual a condenação produz seu primeiro efeito nos indicadores financeiros da Ré — é de <strong>${R0(tDia)}</strong>, equivalente a 1 (um) dia de lucro operacional e correspondente a ${pct(tDia,4)} do lucro anual;</p>
+
+  <p class="rj-p"><strong>(iii)</strong> Para produção de efeito <strong>dissuasório mínimo</strong>, capaz de influenciar a tomada de decisão da empresa quanto à adoção de práticas preventivas de compliance, o quantum deve atingir o patamar de <strong>${R0(t1pct)}</strong> (1% do lucro anual), representando ${mult(t1pct)} a condenação original;</p>
+
+  <p class="rj-p"><strong>(iv)</strong> Para produção de efeito <strong>dissuasório pleno</strong>, com repercussão sistêmica e alteração comportamental mensurável, o quantum deve situar-se na faixa de <strong>${R0(t5pct)}</strong> (5% do lucro anual), equivalente a ${mult(t5pct)} a condenação original;</p>
+
+  <p class="rj-p"><strong>(v)</strong> A majoração postulada é tecnicamente fundamentada, juridicamente autorizada pelos precedentes do STJ, e economicamente necessária para que o instituto do dano moral cumpra sua dupla função constitucional — compensatória e punitivo-pedagógica —, nos termos do art. 5.º, X, da Constituição Federal, dos arts. 186, 187 e 927 do Código Civil, e da consolidada jurisprudência do Superior Tribunal de Justiça.</p>
+
+  <div class="rj-dispositivo">
+    <div class="rj-dispositivo-titulo">⚖️ Síntese dos Valores Apurados — Para os Fins Devidos</div>
+    <div class="rj-disp-grid">
+      <div class="rj-disp-item">
+        <div class="rj-disp-lbl">Condenação atual</div>
+        <div class="rj-disp-val">${R0(condenacao)}</div>
+      </div>
+      <div class="rj-disp-item">
+        <div class="rj-disp-lbl">Custo real (SELIC ${anos}a)</div>
+        <div class="rj-disp-val">${R(custoReal)}</div>
+      </div>
+      <div class="rj-disp-item gold">
+        <div class="rj-disp-lbl">★ Mínimo perceptível</div>
+        <div class="rj-disp-val">${R0(tDia)}</div>
+      </div>
+      <div class="rj-disp-item destaque">
+        <div class="rj-disp-lbl">Dissuasório mínimo (1%)</div>
+        <div class="rj-disp-val">${R0(t1pct)}</div>
+      </div>
+      <div class="rj-disp-item destaque">
+        <div class="rj-disp-lbl">Dissuasório pleno (5%)</div>
+        <div class="rj-disp-val">${R0(t5pct)}</div>
+      </div>
+      <div class="rj-disp-item">
+        <div class="rj-disp-lbl">Múltiplo recomendado</div>
+        <div class="rj-disp-val">${mult(t1pct)} a ${mult(t5pct)}</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="rj-p">Diante do exposto, requer-se a este d. Juízo que, na fixação do quantum indenizatório por dano moral, leve em consideração os parâmetros técnico-econômicos aqui apurados, determinando valor não inferior a <strong>${R0(tDia)}</strong> (quantum mínimo perceptível) e preferencialmente situado na faixa de <strong>${R0(t1pct)}</strong> a <strong>${R0(t5pct)}</strong> (faixa dissuasória), em observância aos princípios da proporcionalidade, da função punitivo-pedagógica e da efetividade da tutela jurisdicional.</p>
+</div>
+
+<!-- ──────────────────────────────────────
+     SEÇÃO VIII — RESPONSÁVEL TÉCNICO
+────────────────────────────────────────── -->
+<div class="rj-secao">
+  <div class="rj-secao-num">Seção VIII</div>
+  <div class="rj-secao-titulo">VIII — Responsável Técnico e Declaração de Autenticidade</div>
+
+  <p class="rj-p">O presente memorando técnico-econômico foi elaborado com base em dados públicos verificáveis (Balanços IFRS, Painel CNJ/Data.Jus, BCB/COPOM) e gerado pela plataforma LAADV — Quantum Dissuasório v2.0, desenvolvida internamente pela Luís Albert Advocacia para fins de análise punitiva corporativa.</p>
+
+  <p class="rj-p no-indent"><strong>Ressalva metodológica:</strong> O presente documento constitui modelo econômico simplificado de apoio à argumentação jurídica, não substituindo laudo pericial assinado por expert. Para uso em perícia judicial, recomenda-se elaboração de laudo técnico subscrito por profissional habilitado junto ao CREA, CFC ou CRE, com observância das normas ABNT NBR 14.653 e CPC nº 14.</p>
+
+  <div class="rj-assinatura">
+    <div class="rj-assinatura-box">
+      <br><br>
+      <div class="rj-assinatura-linha"></div>
+      <div class="rj-assinatura-nome">Luís Albert</div>
+      <div class="rj-assinatura-cargo">Advogado — OAB/AM</div>
+      <div class="rj-assinatura-cargo">Luís Albert Advocacia · Manaus – AM</div>
+      <div class="rj-assinatura-cargo" style="margin-top:0.2rem;">${dtHoje}</div>
+    </div>
+  </div>
+</div>
+`;
+
+  // Mostra o bloco
+  document.getElementById('relatorio-juridico-wrap').classList.remove('hidden');
+  log('RELATORIO', `Relatório jurídico gerado: ${empresa} | Quantum=${R0(tDia)} | Recomendado=${R0(t1pct)}-${R0(t5pct)}`);
+}
+
+// ═══════════════════════════════════════════════════════
+// COPIAR RELATÓRIO (texto limpo para clipboard)
+// ═══════════════════════════════════════════════════════
+function copiarRelatorio() {
+  const el = document.getElementById('rj-body');
+  if (!el) return;
+  // Extrai texto puro do HTML
+  const tmp = document.createElement('div');
+  tmp.innerHTML = el.innerHTML;
+  // Remove elementos que são só visuais
+  tmp.querySelectorAll('.rj-formula-label').forEach(x => x.remove());
+  const texto = tmp.innerText || tmp.textContent;
+  navigator.clipboard.writeText(texto).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => btn.textContent = '📋 Copiar Texto', 2500);
+    log('COPY', 'Relatório copiado para clipboard');
+  }).catch(() => {
+    alert('Não foi possível copiar automaticamente. Selecione o texto manualmente (Ctrl+A no relatório).');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPRIMIR APENAS O RELATÓRIO
+// ═══════════════════════════════════════════════════════
+function imprimirRelatorio() {
+  // Esconde todo o painel de análise, imprime só o relatório
+  const painel  = document.getElementById('step-results');
+  const relWrap = document.getElementById('relatorio-juridico-wrap');
+  const rel     = document.getElementById('relatorio-juridico');
+  // Abre janela de impressão isolada
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+    <meta charset="UTF-8"/>
+    <title>LAADV — Relatório Jurídico</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+      @page{size:A4;margin:15mm 12mm;}
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:'Cormorant Garamond',Georgia,serif;color:#162030;background:#FAFAF8;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+      ${[...document.styleSheets].flatMap(s=>{try{return [...s.cssRules].filter(r=>r.selectorText&&(r.selectorText.startsWith('.rj')||r.selectorText.includes('rj-'))).map(r=>r.cssText)}catch(e){return[]}}).join('\n')}
+    </style>
+  </head><body>${rel.outerHTML}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 800);
+  log('PRINT_REL', 'Impressão isolada do relatório jurídico iniciada');
+}
+
+// ═══════════════════════════════════════════════════════
+// INICIALIZAÇÃO
+// ═══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  renderGridPresets();
+  renderGridSaved();
+  renderLog();
+  log('INIT', 'LAADV Quantum Dissuasório v1.0 carregado — ' + new Date().toLocaleString('pt-BR'));
+});
+</script>
+</body>
+</html>
