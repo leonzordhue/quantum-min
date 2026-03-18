@@ -31,6 +31,23 @@
 ║  - Modo papel A4 com identidade visual LAADV (teal/gold)                        ║
 ║  - FIX: gerarRelatorioJuridico() chamada ao fim de calcular()                   ║
 ║                                                                                   ║
+║  [v3.0.0] 2026-03-18 — Blindagem Jurídica para STJ (3 alterações cirúrgicas)   ║
+║  - ALT 1 (Intro do memorando): Parágrafo fixo de posicionamento metodológico    ║
+║    define "quantum mínimo contábil perceptível" como evolução metodológica da   ║
+║    objetivação do critério de capacidade econômica — não como conceito novo.    ║
+║    Bridge explícita: análise econômica INSTRUMENTALIZA o critério jurídico.      ║
+║  - ALT 2 (Seção VI completa): Substituição sistemática de toda linguagem de     ║
+║    "valor baixo/irrisório/irrelevante" por terminologia de ineficácia funcional. ║
+║    VI.3 ajustado: incentivo cauteloso no geral; afirmativo quando custo negativo.║
+║    VI.5 nova: "ausência de correlação que transforma a responsabilidade civil    ║
+║    em custo operacional previsível" — tese pronta para 2.ª instância e STJ.     ║
+║  - ALT 3 (Seção VII): Três novos parágrafos pré-dispositivo:                    ║
+║    (a) Dissuasão como DEVER JURÍDICO — não argumento persuasivo.                ║
+║    (b) Bridge econômica-jurídica (análise instrumentaliza critério normativo).   ║
+║    (c) "Ausência de correlação → custo operacional previsível" — tese STJ.      ║
+║  - NÃO implementado: faixas de confiança (3 cenários), linguagem de humildade,  ║
+║    benchmarking estatístico automático — razões na análise de 2026-03-18.       ║
+║                                                                                   ║
 ║  BUGS CONHECIDOS / NÃO REGREDIR:                                                 ║
 ║  - parseBR(): SEMPRE usar para inputs numéricos (nunca parseFloat direto)        ║
 ║  - Lucro: SEMPRE anualizar (lucroAnual = lucro * 12 / meses)                    ║
@@ -1952,6 +1969,13 @@ function gerarRelatorioJuridico(d) {
   <p class="rj-p">A análise toma por base os dados financeiros públicos consignados nas Demonstrações Financeiras da Ré relativas ao ${periodoLabel} (balanço IFRS/CPC), consolidados com os dados processuais extraídos do Painel de Litigiosidade do Conselho Nacional de Justiça (CNJ/Data.Jus), e com a taxa de juros básica da economia fixada pelo Banco Central do Brasil (BCB/COPOM) no patamar de <strong>${selicPct}% ao ano</strong>.</p>
 
   <p class="rj-p">O objeto específico desta análise é a condenação por dano moral no valor de <strong>${R0(condenacao)}</strong>, proferida em sede de <strong>${instLabel}</strong>, cuja suficiência para produção de efeito punitivo-pedagógico é examinada a partir de critérios contábeis, econômicos e jurídicos objetivos, conforme metodologia exposta nas seções subsequentes.</p>
+
+  <div class="rj-destaque" style="background:var(--teal-bg);border-left-color:var(--teal);">
+    <div class="rj-destaque-titulo">📐 Posicionamento Metodológico — Leitura Obrigatória</div>
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:.95rem;color:var(--text);line-height:1.8;">
+      A análise econômica aqui apresentada não substitui o critério jurídico, tampouco propõe um conceito novo ao ordenamento. Ela <strong>instrumentaliza</strong> o critério que o Superior Tribunal de Justiça já exige — a proporcionalidade em relação à <strong>capacidade econômica do ofensor</strong> —, tornando-o objetivamente verificável em lugar de abstratamente enunciado. O <em>quantum mínimo contábil perceptível</em> não é invenção doutrinária: é a <strong>evolução metodológica da objetivação de um critério normativo já consolidado</strong>, que passa a ser calculado em vez de apenas citado. A ferramenta, portanto, não amplia o alcance da responsabilidade civil — ela apenas remove a opacidade que historically protegeu réus economicamente poderosos da efetividade da condenação.
+    </div>
+  </div>
 </div>
 
 <!-- ──────────────────────────────────────
@@ -2146,42 +2170,52 @@ L6 — Dissuasório Sistêmico (10% lucro): ${R0(lucroAnual)} × 0,10  = ${R0(t1
 
   <div class="rj-subsecao">
     <div class="rj-subsecao-titulo">VI.1 — Função Punitivo-Pedagógica do Dano Moral: Doutrina de Caio Mário e Cavalieri Filho</div>
-    <p class="rj-p">A doutrina brasileira, a partir das lições seminais de <strong>Caio Mário da Silva Pereira</strong> e de <strong>Sérgio Cavalieri Filho</strong>, consolidou que o dano moral cumpre dupla função: (i) compensatória, de mitigar o sofrimento da vítima; e (ii) punitivo-pedagógica, de desestimular a repetição da conduta ilícita pelo ofensor. É nessa segunda dimensão que a presente análise se centra.</p>
+    <p class="rj-p">A doutrina brasileira, a partir das lições seminais de <strong>Caio Mário da Silva Pereira</strong> e de <strong>Sérgio Cavalieri Filho</strong>, consolidou que o dano moral cumpre dupla função: (i) compensatória, de mitigar o sofrimento da vítima; e (ii) punitivo-pedagógica, de desestimular a repetição da conduta ilícita pelo ofensor. É nessa segunda dimensão que a presente análise se centra — e é precisamente ela que deve ser aferida não por impressão subjetiva, mas por verificação objetiva do impacto econômico real da condenação sobre as finanças do ofensor.</p>
     <div class="rj-citacao">
       <div class="rj-citacao-texto">"A indenização deve ser fixada em montante que represente para o ofensor um sacrifício real, de modo a produzir o desestímulo necessário à não repetição da conduta lesiva. A indenização simbólica ou inexpressiva não cumpre esta função."</div>
       <div class="rj-citacao-fonte">CAVALIERI FILHO, Sérgio. Programa de Responsabilidade Civil. 12.ª ed. São Paulo: Atlas, 2015, p. 119.</div>
     </div>
-    <p class="rj-p">No caso concreto, a condenação de <strong>${R0(condenacao)}</strong> representa apenas <strong>${pct(condenacao,8)}</strong> do lucro anual da ${escH(empresa)}, com custo líquido real de <strong>${R(custoReal)}</strong> após rendimento SELIC. Tal valor, pela escala econômica da Ré, não produz qualquer <em>sacrifício real</em> — e, portanto, falha integralmente na função punitivo-pedagógica.</p>
+    <p class="rj-p">No caso concreto, a condenação de <strong>${R0(condenacao)}</strong> representa <strong>${pct(condenacao,8)}</strong> do lucro anual da ${escH(empresa)}, com custo líquido real de <strong>${R(custoReal)}</strong> após rendimento SELIC sobre a provisão constituída. Pela escala econômica da Ré, tal montante é <strong>incapaz de produzir qualquer impacto financeiro mínimo em sua estrutura operacional</strong> — e, portanto, falha integralmente na função punitivo-pedagógica que a lei e a doutrina exigem.</p>
   </div>
 
   <div class="rj-subsecao">
     <div class="rj-subsecao-titulo">VI.2 — Proporcionalidade e Capacidade Econômica do Ofensor: Jurisprudência do Superior Tribunal de Justiça</div>
-    <p class="rj-p">O Superior Tribunal de Justiça consolidou, em numerosos precedentes, que o quantum do dano moral deve guardar proporção com a <strong>capacidade econômica do ofensor</strong>, de modo a produzir impacto real em suas finanças e assim cumprir a função preventivo-geral da responsabilidade civil.</p>
+    <p class="rj-p">O Superior Tribunal de Justiça consolidou, em numerosos precedentes, que o quantum do dano moral deve guardar proporção com a <strong>capacidade econômica do ofensor</strong>, de modo a produzir impacto real em suas finanças e assim cumprir a função preventivo-geral da responsabilidade civil. Ocorre que, no caso concreto, embora esses critérios tenham sido formalmente enunciados, <strong>não houve qualquer verificação concreta do impacto econômico efetivo da condenação sobre a estrutura financeira da empresa-ré</strong> — o que compromete a própria eficácia da decisão.</p>
     <div class="rj-citacao">
       <div class="rj-citacao-texto">"Na fixação do valor da indenização por danos morais, devem ser levados em conta o nível econômico do ofensor e do ofendido, a extensão do dano e o caráter pedagógico e punitivo da sanção, de modo que a indenização não seja irrisória nem cause enriquecimento indevido."</div>
-      <div class="rj-citacao-fonte">STJ, REsp n.º 1.864.973/SP, Rel. Min. Marco Aurélio Bellizze, 3.ª Turma, j. 09/02/2021.</div>
+      <div class="rj-citacao-fonte">STJ, REsp n.º 1.864.973/SP, Rel. Min. Marco Aurélio Bellizze, 3.ª Turma, j. 09/02/2021. (Verificar ementa no sistema do STJ antes do uso processual)</div>
     </div>
     <div class="rj-citacao">
       <div class="rj-citacao-texto">"O valor da condenação por danos morais deve ser suficiente para inibir a reiteração da conduta ilícita, levando-se em conta a condição financeira do ofensor e a gravidade do ato praticado."</div>
-      <div class="rj-citacao-fonte">STJ, AgInt no REsp n.º 1.767.565/SP, Rel. Min. Luis Felipe Salomão, 4.ª Turma, j. 03/09/2019.</div>
+      <div class="rj-citacao-fonte">STJ, AgInt no REsp n.º 1.767.565/SP, Rel. Min. Luis Felipe Salomão, 4.ª Turma, j. 03/09/2019. (Verificar ementa no sistema do STJ antes do uso processual)</div>
     </div>
-    <p class="rj-p">Com lucro anual de <strong>${R0(lucroAnual)}</strong> documentado em balanços IFRS auditados, a fixação do quantum abaixo do limiar de 1 dia de lucro (<strong>${R0(tDia)}</strong>) viola frontalmente o princípio da proporcionalidade punitiva consagrado pelo STJ, tornando a condenação juridicamente insuficiente.</p>
+    <p class="rj-p">Com lucro anual de <strong>${R0(lucroAnual)}</strong> documentado em balanços IFRS auditados, a fixação do quantum abaixo do limiar de 1 dia de lucro (<strong>${R0(tDia)}</strong>) revela <strong>ausência de correlação entre o valor arbitrado e a capacidade econômica real da ofensora</strong>, violando o princípio da proporcionalidade punitiva que esta própria Corte consagrou e tornando a condenação funcionalmente ineficaz.</p>
   </div>
 
   <div class="rj-subsecao">
     <div class="rj-subsecao-titulo">VI.3 — Teoria do Desestímulo e Análise Econômica do Direito (Law & Economics)</div>
-    <p class="rj-p">A Análise Econômica do Direito (<em>Law & Economics</em>), a partir das obras de <strong>Richard Posner</strong> e <strong>Guido Calabresi</strong>, demonstra que as regras de responsabilidade civil somente cumprem sua função alocativa quando o custo esperado da condenação supera o benefício esperado da conduta ilícita para o potencial ofensor. Quando a relação é inversa — como se demonstra nos cálculos desta análise —, o sistema jurídico passa a <em>subsidiar</em> o ilícito.</p>
+    <p class="rj-p">A Análise Econômica do Direito (<em>Law & Economics</em>), a partir das obras de <strong>Richard Posner</strong> e <strong>Guido Calabresi</strong>, demonstra que as regras de responsabilidade civil somente cumprem sua função alocativa quando o custo esperado da condenação supera o benefício esperado da conduta ilícita para o potencial ofensor. Quando a relação é inversa — como se demonstra nos cálculos desta análise —, o sistema jurídico passa a <em>subsidiar</em> o ilícito em vez de desestimulá-lo. Ressalva-se que a análise econômica aqui apresentada não substitui o critério jurídico: ela o <strong>instrumentaliza</strong>, permitindo verificar objetivamente se a condenação cumpre a finalidade que a lei lhe atribui.</p>
     <div class="rj-citacao">
       <div class="rj-citacao-texto">"A responsabilidade civil eficiente exige que o potencial ofensor internalize o custo social de suas atividades. Quando o valor esperado das indenizações for inferior ao ganho advindo da atividade lesiva, haverá incentivo econômico para a prática reiterada do ilícito."</div>
       <div class="rj-citacao-fonte">POSNER, Richard A. Economic Analysis of Law. 9.ª ed. New York: Wolters Kluwer, 2014, p. 215. (Tradução livre)</div>
     </div>
-    <p class="rj-p">No caso da ${escH(empresa)}, a equação decisória é cristalina: com <strong>${processos.toLocaleString('pt-BR')}</strong> processos em curso, custo de defesa de <strong>${R(despPorProc)}</strong> por processo e custo real da condenação de apenas <strong>${R(custoReal)}</strong>, a empresa tem incentivo econômico <em>positivo</em> para litigar massivamente — pois o rendimento SELIC de <strong>${R0(rendProv)}/ano</strong> sobre suas provisões supera o custo global do contencioso.</p>
+    <p class="rj-p">No caso da ${escH(empresa)}, a equação decisória é objetivamente demonstrável pelos dados públicos: com <strong>${processos.toLocaleString('pt-BR')}</strong> processos em curso, custo de defesa apurado de <strong>${R(despPorProc)}</strong> por processo e custo líquido real da condenação de <strong>${R(custoReal)}</strong>${custoReal < 0 ? ` — <strong>valor negativo, o que significa que o rendimento SELIC sobre a provisão constituída supera integralmente o valor a pagar</strong>, configurando ganho financeiro líquido decorrente da demora processual` : `, o modelo econômico vigente pode gerar dinâmica que neutraliza o caráter punitivo da condenação, na medida em que o custo esperado dos litígios se mantém em patamar incapaz de alterar a estrutura de incentivos da empresa`}.</p>
   </div>
 
   <div class="rj-subsecao">
     <div class="rj-subsecao-titulo">VI.4 — Litigância Habitual e Evidência Empírica de Indiferença Comportamental</div>
-    <p class="rj-p">O <strong>Conselho Nacional de Justiça (CNJ)</strong>, por meio de seus Relatórios de Litigiosidade e do Painel de Análise de Maiores Litigantes, comprova empiricamente que empresas com elevado número de processos no polo passivo — como a ${escH(empresa)}, com <strong>${processos.toLocaleString('pt-BR')}</strong> ações — não alteram comportamento quando submetidas a condenações inferiores ao custo de prevenção e compliance. O dado é relevantíssimo: se as condenações fossem eficazes, o volume litigioso tenderia à redução ao longo dos exercícios. A manutenção ou crescimento da carteira de processos é, por si só, evidência da indiferença comportamental à condenação.</p>
-    <p class="rj-p">Nesse contexto, a <strong>Acordada CNJ nº 060/2021</strong> e os Relatórios Anuais de Litigiosidade constituem prova documental de que a estratégia de litigância massificada a baixo custo é consciente e calculada, razão pela qual a majoração do quantum não apenas é autorizada — é <em>necessária</em> para que o sistema jurídico cumpra sua função regulatória.</p>
+    <p class="rj-p">O <strong>Conselho Nacional de Justiça (CNJ)</strong>, por meio de seus Relatórios de Litigiosidade e do Painel de Análise de Maiores Litigantes, comprova empiricamente que empresas com elevado número de processos no polo passivo — como a ${escH(empresa)}, com <strong>${processos.toLocaleString('pt-BR')}</strong> ações — não alteram comportamento quando submetidas a condenações cujo valor se mantém <strong>incapaz de produzir impacto financeiro mínimo em sua estrutura operacional</strong>. O dado é juridicamente relevante: se as condenações fossem funcionalmente eficazes, o volume litigioso tenderia à redução ao longo dos exercícios. A manutenção ou crescimento da carteira de processos é, por si só, evidência objetiva da ineficácia das condenações vigentes sobre o comportamento corporativo da Ré.</p>
+    <p class="rj-p">Nesse contexto, a <strong>Acordada CNJ nº 060/2021</strong> e os Relatórios Anuais de Litigiosidade constituem prova documental de que a estratégia de litigância massificada a baixo custo é consciente e calculada, razão pela qual a majoração do quantum não apenas é autorizada — é <strong>necessária para que o sistema de responsabilidade civil cumpra sua função regulatória e preventiva</strong>.</p>
+  </div>
+
+  <div class="rj-subsecao">
+    <div class="rj-subsecao-titulo">VI.5 — A Transformação da Responsabilidade Civil em Custo Operacional Previsível</div>
+    <p class="rj-p">Há uma consequência jurídica de extrema gravidade que emerge da análise dos dados: quando a condenação por dano moral é sistematicamente fixada em patamar <strong>incapaz de produzir qualquer impacto econômico relevante na estrutura operacional da ofensora</strong>, ela deixa de ser instrumento de responsabilização e passa a integrar o orçamento ordinário da empresa como <strong>custo operacional previsível e gerenciável</strong>.</p>
+    <div class="rj-citacao">
+      <div class="rj-citacao-texto">"A ausência de correlação entre o valor da condenação e a capacidade econômica do ofensor transforma a responsabilidade civil em custo operacional previsível, esvaziando sua função preventiva e pedagógica e autorizando a revisão do quantum por esta Corte Superior."</div>
+      <div class="rj-citacao-fonte">Tese fundamentada nos critérios de proporcionalidade do STJ — para uso em sede de Recurso Especial com demonstração técnica dos dados financeiros.</div>
+    </div>
+    <p class="rj-p">Essa transformação — de sanção em custo operacional — representa a negação prática da função constitucional da responsabilidade civil. A empresa que sabe, com base em seu próprio planejamento financeiro, que as condenações a que estará sujeita são absorvíveis como despesa corrente não tem incentivo econômico algum para investir em compliance, prevenção de danos ou alteração de suas práticas comerciais. O resultado é o litígio massificado que o próprio CNJ documenta: <strong>${processos.toLocaleString('pt-BR')}</strong> processos no polo passivo da ${escH(empresa)}, com provisões de <strong>${R0(provisoes)}</strong> que rendem <strong>${R0(rendProv)}/ano</strong> à taxa SELIC — valor muito superior ao custo global das condenações pagas no mesmo período.</p>
   </div>
 </div>
 
@@ -2194,7 +2228,7 @@ L6 — Dissuasório Sistêmico (10% lucro): ${R0(lucroAnual)} × 0,10  = ${R0(t1
 
   <p class="rj-p">Com base na análise integrada das Demonstrações Financeiras IFRS da <strong>${escH(empresa)}</strong> (${periodoLabel}), dos dados processuais do CNJ (${processos.toLocaleString('pt-BR')} processos no polo passivo), da taxa SELIC de ${selicPct}% ao ano e da metodologia exposta nas seções anteriores, conclui-se:</p>
 
-  <p class="rj-p"><strong>(i)</strong> A condenação atual de <strong>${R0(condenacao)}</strong> representa <strong>${pct(condenacao,8)}</strong> do lucro anual da empresa-ré, com custo líquido real de apenas <strong>${R(custoReal)}</strong> após ${anos} anos de rendimento SELIC sobre a provisão constituída — valor economicamente irrelevante para uma empresa com faturamento da magnitude da Ré;</p>
+  <p class="rj-p"><strong>(i)</strong> A condenação atual de <strong>${R0(condenacao)}</strong> representa <strong>${pct(condenacao,8)}</strong> do lucro anual da empresa-ré, com custo líquido real de <strong>${R(custoReal)}</strong> após ${anos} anos de rendimento SELIC sobre a provisão constituída — montante <strong>incapaz de produzir qualquer impacto econômico mínimo na estrutura operacional da Ré</strong>, empresa com lucro anual documentado de ${R0(lucroAnual)};</p>
 
   <p class="rj-p"><strong>(ii)</strong> O <strong>quantum mínimo contábil perceptível</strong> — valor a partir do qual a condenação produz seu primeiro efeito nos indicadores financeiros da Ré — é de <strong>${R0(tDia)}</strong>, equivalente a 1 (um) dia de lucro operacional e correspondente a ${pct(tDia,4)} do lucro anual;</p>
 
@@ -2203,6 +2237,15 @@ L6 — Dissuasório Sistêmico (10% lucro): ${R0(lucroAnual)} × 0,10  = ${R0(t1
   <p class="rj-p"><strong>(iv)</strong> Para produção de efeito <strong>dissuasório pleno</strong>, com repercussão sistêmica e alteração comportamental mensurável, o quantum deve situar-se na faixa de <strong>${R0(t5pct)}</strong> (5% do lucro anual), equivalente a ${mult(t5pct)} a condenação original;</p>
 
   <p class="rj-p"><strong>(v)</strong> A majoração postulada é tecnicamente fundamentada, juridicamente autorizada pelos precedentes do STJ, e economicamente necessária para que o instituto do dano moral cumpra sua dupla função constitucional — compensatória e punitivo-pedagógica —, nos termos do art. 5.º, X, da Constituição Federal, dos arts. 186, 187 e 927 do Código Civil, e da consolidada jurisprudência do Superior Tribunal de Justiça.</p>
+
+  <div class="rj-destaque" style="background:var(--teal-bg);border-left-color:var(--teal);margin:1.25rem 0;">
+    <div class="rj-destaque-titulo">⚖️ Fundamento Jurídico da Majoração — Três Pilares Cumulativos</div>
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:.95rem;color:var(--text);line-height:1.85;">
+      <p style="margin-bottom:.75rem;text-indent:0;"><strong>Primeiro:</strong> a condenação por dano moral <strong>deve</strong> ser suficiente para cumprir a função punitivo-pedagógica da responsabilidade civil — não se trata de faculdade do julgador, mas de <strong>dever jurídico imposto pelo ordenamento</strong> (art. 944 do CC c/c art. 5.º, X, da CF). Uma condenação que não produz impacto econômico real na estrutura do ofensor viola essa imposição normativa — independentemente do valor nominal fixado.</p>
+      <p style="margin-bottom:.75rem;text-indent:0;"><strong>Segundo:</strong> a análise econômica aqui desenvolvida não introduz critério estranho ao Direito — ela <strong>instrumentaliza o critério que o STJ já exige</strong>: a proporcionalidade em relação à capacidade econômica do réu. Ao calcular o impacto marginal da condenação sobre os indicadores financeiros da empresa, torna-se possível verificar, com objetividade, se esse critério foi ou não observado na prática. A análise econômica serve ao Direito; não o substitui.</p>
+      <p style="text-indent:0;"><strong>Terceiro:</strong> a <strong>ausência de correlação entre o valor da condenação e a capacidade econômica real da ofensora transforma a responsabilidade civil em custo operacional previsível e gerenciável</strong>, esvaziando completamente sua função preventiva e pedagógica. Trata-se de hipótese excepcional de desproporcionalidade ínfima que, nos termos da jurisprudência desta Corte, autoriza a revisão do quantum — pois o que está em jogo não é a preferência do julgador por valores maiores ou menores, mas a <em>eficácia funcional</em> do próprio instituto da responsabilidade civil.</p>
+    </div>
+  </div>
 
   <div class="rj-dispositivo">
     <div class="rj-dispositivo-titulo">⚖️ Síntese dos Valores Apurados — Para os Fins Devidos</div>
@@ -2234,7 +2277,7 @@ L6 — Dissuasório Sistêmico (10% lucro): ${R0(lucroAnual)} × 0,10  = ${R0(t1
     </div>
   </div>
 
-  <p class="rj-p">Diante do exposto, requer-se a este d. Juízo que, na fixação do quantum indenizatório por dano moral, leve em consideração os parâmetros técnico-econômicos aqui apurados, determinando valor não inferior a <strong>${R0(tDia)}</strong> (quantum mínimo perceptível) e preferencialmente situado na faixa de <strong>${R0(t1pct)}</strong> a <strong>${R0(t5pct)}</strong> (faixa dissuasória), em observância aos princípios da proporcionalidade, da função punitivo-pedagógica e da efetividade da tutela jurisdicional.</p>
+  <p class="rj-p">Diante do exposto, requer-se a este d. Juízo que, na fixação do quantum indenizatório por dano moral, leve em consideração os parâmetros técnico-econômicos aqui apurados, determinando valor não inferior a <strong>${R0(tDia)}</strong> (quantum mínimo perceptível — 1 dia de lucro operacional da Ré) e preferencialmente situado na faixa de <strong>${R0(t1pct)}</strong> a <strong>${R0(t5pct)}</strong> (faixa dissuasória de 1% a 5% do lucro anual), em observância aos princípios constitucionais da proporcionalidade, da função punitivo-pedagógica da responsabilidade civil e da efetividade da tutela jurisdicional — valores que não enriquecem indevidamente a parte autora, mas que tampouco transformam a condenação em custo operacional previsível para a Ré.</p>
 </div>
 
 <!-- ──────────────────────────────────────
