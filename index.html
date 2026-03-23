@@ -1167,17 +1167,83 @@
 </footer>
 
 <script>
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║  AKE — AXIOMATIC KERNEL ENGINE · UNIFIED FIELD THEORY                       ║
+// ║  Protocolo: UFT-1.0 · Arquivo Soberano · Motor Analítico Jurídico          ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║  @domain    Direito do Consumidor — Quantum Dissuasório de Dano Moral       ║
+// ║  @author    Paulo Esteves Fernandes Neto                                     ║
+// ║  @client    LAADV — Luís Albert Advocacia                                    ║
+// ║  @version   1.0.0-ake                                                       ║
+// ║  @build     GENESIS_RETROFIT                                                ║
+// ║  @created   2026-03-24                                                      ║
+// ║                                                                              ║
+// ║  CLASSIFICAÇÃO AKE:                                                          ║
+// ║    Perfil:        Soberano (Library interna: presets IFRS + SELIC linear)    ║
+// ║    Camada 1 (Library):   PRESETS[] — 8 empresas com dados IFRS/CNJ públicos ║
+// ║    Camada 2 (Logic):     calcular() — Quantum mínimo contábil perceptível   ║
+// ║                          SELIC linear: rendimento = valor × taxa × tempo    ║
+// ║                          Métrica: "dias de lucro" = lucroAnual ÷ 365       ║
+// ║    Camada 4 (Log):       AKE_BUILD_LOG + sistema de log localStorage       ║
+// ║    Camada 6 (UI):        Cards empresa, tabela quantum, relatório jurídico  ║
+// ║                                                                              ║
+// ║  BASE METODOLÓGICA:                                                          ║
+// ║    - IFRS (International Financial Reporting Standards) — dados contábeis    ║
+// ║    - CNJ (Conselho Nacional de Justiça) — volume processual                 ║
+// ║    - BCB (Banco Central) — Taxa SELIC vigente                               ║
+// ║    - Metodologia original: quantum mínimo = ponto onde condenação supera    ║
+// ║      custo jurídico real + rendimento SELIC sobre provisões                 ║
+// ║                                                                              ║
+// ║  REGRAS DE NÃO-REGRESSÃO (proto-tentativas_falhas):                         ║
+// ║    1. parseBR() para TODOS os inputs — nunca parseFloat() direto            ║
+// ║    2. Lucro SEMPRE anualizado: lucroAnual = lucro × 12 ÷ meses             ║
+// ║    3. SELIC LINEAR (não composta) — conforme análise original               ║
+// ║    4. "1 dia de lucro" = lucroAnual ÷ 365 (dias corridos)                  ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+// ============================================================================
+// CAMADA 4 — LOG ENGINE
+// ============================================================================
+const AKE_BUILD_LOG = Object.freeze([{
+  build: "1.0.0-ake",
+  data: "2026-03-24T11:10:00-04:00",
+  autor: "Paulo Esteves Fernandes Neto",
+  ia_assistente: "Claude Opus 4.6",
+  tipo: "GENESIS_RETROFIT",
+  descricao: "Retrofit AKE no motor de quantum dissuasório LAADV v1.0. Soberano — presets IFRS e SELIC embutidos.",
+  estado_pre_retrofit: { linhas: 2372, dados: "8 presets empresariais IFRS/CNJ + SELIC linear" },
+  axiomas_identificados: [
+    "PRESETS[] — 8 empresas (Agibank, Nubank, Bradesco, Itaú, Vivo, Claro, Magalu, Casas Bahia) com dados IFRS públicos",
+    "calcular() — Motor: lucro anualizado, custo jurídico real, rendimento SELIC, quantum mínimo, tabela de patamares",
+    "SELIC LINEAR: rendimento = valor × taxa × tempo (NÃO composta — decisão metodológica documentada)",
+    "parseBR() — Parser de valores BR (1.234.567,89 → 1234567.89)",
+    "Regras de não-regressão — 5 regras proto-AKE já documentadas no header original"
+  ],
+  tentativas_falhas: [
+    { tentativa: "Usar parseFloat() direto em inputs BR", resultado: "Valores com ponto de milhar eram truncados", motivo_rejeicao: "parseFloat('1.234') = 1.234, não 1234", build_ref: "pre-1.0" },
+    { tentativa: "SELIC composta para rendimento sobre provisões", resultado: "Valores divergiam da análise original Agibank", motivo_rejeicao: "Análise original usou SELIC linear — manter consistência metodológica", build_ref: "pre-1.0" }
+  ],
+  erros_corrigidos: []
+}]);
+
+// ============================================================================
+// CAMADA 1 — THE LIBRARY (Conhecimento Estático — Soberano)
+// ============================================================================
+
+/**
+ * @meta Presets de empresas — dados contábeis públicos
+ * @source IFRS (demonstrações financeiras publicadas) + CNJ (Justiça em Números)
+ * @description 8 empresas de diferentes setores (fintech, banco, telecom, varejo)
+ *              com lucro, provisões, despesas jurídicas, condenações e volume processual.
+ * @fields id | emoji | nome | setor | meses (período) | lucro | provisoes | despJur |
+ *         condPagas | processos | selic | anos (duração média processo) | condenacao (média)
+ * @sovereignty SOBERANO — dados embutidos de fontes públicas
+ * @ake_rule AKE-LIB-001
+ */
+
 // ╔═══════════════════════════════════════════════════════════════════╗
 // ║  LAADV — QUANTUM DISSUASÓRIO v1.0                                ║
 // ║  Motor Analítico Generalizado                                     ║
-// ║                                                                   ║
-// ║  REGRAS DE NÃO-REGRESSÃO (não alterar sem documentar changelog): ║
-// ║  1. parseBR() para TODOS os inputs — nunca parseFloat() direto   ║
-// ║  2. Lucro SEMPRE anualizado: lucroAnual = lucro × 12 ÷ meses     ║
-// ║  3. SELIC LINEAR: rendimento = valor × taxa × tempo               ║
-// ║     (NÃO composta — fórmula conforme análise Agibank original)    ║
-// ║  4. "1 dia de lucro" = lucroAnual ÷ 365 (dias corridos)          ║
-// ║  5. Empresas salvas: localStorage key = "laadv_empresas_v1"       ║
 // ╚═══════════════════════════════════════════════════════════════════╝
 
 // ═══════════════════════════════════════════════════════
